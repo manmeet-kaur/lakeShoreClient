@@ -1,0 +1,53 @@
+<!doctype html>
+<html ng-app = "app">
+	<head>
+	    <meta charset="utf-8"></meta>
+    	<meta name="viewport" content="width=device-width, initial-scale=1"></meta>
+		<title>Hello AngularJS</title>
+		<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"></link>
+		    <!-- Custom styles for this template -->
+    	<link href="static/css/signin.css" rel="stylesheet"></link>
+		<link href="static/css/starter-template.css" rel="stylesheet"></link>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+	</head>
+
+	<body ng-controller="HttpCtrl as app">
+		<nav class="navbar navbar-inverse">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<a class="navbar-brand" href="#">Lake Shore Mart</a>
+			</div>
+			<div>
+				<ul class="nav navbar-nav">
+					<li class="active"><a href="#">Home</a></li>
+					<li><a href="#">About</a></li>
+					<li><a href="#">Contact</a></li>
+				</ul>
+				<ul class="nav navbar-nav navbar-right">
+					<li><a href="register.html"><span class="glyphicon glyphicon-user"></span> Register </a></li>
+					<!-- <li><a href="#"><span class="glyphicon glyphicon-log-out"></span> Logout </a></li> -->
+				</ul>
+			</div>
+		</div>
+</nav>
+        <div class="container">
+
+      <form class="form-signin">
+        <h2 class="form-signin-heading">Please sign in</h2>
+        <label for="inputEmail" class="sr-only">Email address</label>
+        <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
+        <label for="inputPassword" class="sr-only">Password</label>
+        <input type="password" id="inputPassword" class="form-control" placeholder="Password" required>
+        <div class="checkbox">
+          <label>
+            <input type="checkbox" value="remember-me"> Remember me
+          </label>
+        </div>
+        <button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="showUser()">Sign in</button>
+      </form>
+
+    </div><!-- /.container -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+	</body>
+</html>

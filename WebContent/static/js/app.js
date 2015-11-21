@@ -40,7 +40,6 @@
 				$scope.info = data;
 				$scope.cartSuccess = true;
 				$scope.home = false;
-				$scope.$apply();
 			})
 			response.error(function(data, status, headers, config) {
 				alert("Failed to add to cart, status = " + status);
@@ -67,10 +66,9 @@
 			var app = this;
 			$scope.navTitle = 'Search Criteria';
 			
-			var response = $http.get('/product/?name=' + name);
+			var response = $http.get('http://localhost:8080/product/?name=' + name);
 			response.success(function(data) {
 				$scope.products = data;
-				$scope.$apply();
 
 				console.log("[searchProduct] # of items: " + data.length)
 				angular.forEach(data, function(element) {

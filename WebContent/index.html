@@ -4,7 +4,9 @@
 		<link href="static/css/styles.css" rel="stylesheet"></link>
 		<!-- Use Bootstrap -->
 		<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular.js"></script>
+    	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular-animate.js"></script>
+		<!-- <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script> -->
 		<script type="text/javascript" src="static/js/app.js"></script>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 	</head>
@@ -15,6 +17,10 @@
 			<h1 class="custom">Welcome to Lake Shore Mart</h1>
 		</div>
 		<div class="container">
+			<div ng-hide=isHome ng-show=app.isCartSuccess>
+				<h3>{{info.message}}</h3>
+				<button ng-click="placeOrder()">Place Order</button>
+			</div>
 		    <form>
 		    	<table>
 					<tr>
@@ -39,6 +45,10 @@
 		<div ng-hide=isHome ng-show=app.isCartSuccess>
 			<h3>{{info.message}}</h3>
 			<button ng-click="placeOrder()">Place Order</button>
+		</div>
+		<div>
+			<br>
+			<button ng-click="viewAllCustomer()">View All Customer Details</button>
 		</div>
 
 		<div class="footer">@Copyright WebServicesGroup</div>

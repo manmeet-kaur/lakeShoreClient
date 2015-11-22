@@ -3,7 +3,7 @@
 	var app = angular.module("app", []);
 
 	
-	app.controller("HttpCtrl", function($scope, $http) {
+	app.controller("HttpCtrl", function($scope, $http, $window) {
 		var baseUrl = 'http://localhost:8080';
 		var app = this;
 		$scope.navTitle = 'All Products';
@@ -15,19 +15,19 @@
 		
 		this.isHome = function() {
 			return $scope.home;
-		}
+		};
 		
 		var response = $http.get('http://localhost:8080/products');
 		response.success(function(data) {
 			$scope.products = data;
-			console.log("[main] # of items: " + data.length)
+			console.log("[main] # of items: " + data.length);
 			angular.forEach(data, function(element) {
 				console.log("[main] product: " + element.name);
 			});
-		})
+		});
 		response.error(function(data, status, headers, config) {
 			alert("Failed to get data from " + baseUrl + "/products- status =" + status);
-		})
+		});
 		
 		$scope.addToCart = function(productId) {
 			var cartRequest = {
@@ -40,15 +40,15 @@
 				$scope.info = data;
 				$scope.cartSuccess = true;
 				$scope.home = false;
-			})
+			});
 			response.error(function(data, status, headers, config) {
 				alert("Failed to add to cart, status = " + status);
-			})
+			});
 		};
 		
 		$scope.isCartSuccess = function() {
 			return $scope.cartSuccess;
-		}
+		};
 		
 //		$scope.getProduct = function(name) {
 //			var response = $http.get('/product/?name='+ name );
@@ -79,7 +79,7 @@
 			
 			response.error(function(data, status, headers, config) {
 				alert("Failed to get data, status=" + status);
-			})
+			});
 		};
 		
 		$scope.clearForm = function() {
@@ -90,7 +90,7 @@
 					quantity:'',
 					vendorName:''
 			};
-		}
+		};
 		
 //		$scope.addNew = function(element) {
 //			$scope.operation="create";
@@ -149,12 +149,17 @@
 			response.success(function(data) {
 				$scope.actors = data;
 				$scope.$apply();
-				console.log("[resetSearch] # of items: " + data.length)
+				console.log("[resetSearch] # of items: " + data.length);
 		    });
 			
 			response.error(function(data, status, headers, config) {
 				alert("Failed to get data, status=" + status);
-			})
+			});
+		};
+		
+		$scope.viewAllCustomer = function() {
+			var url = "http://" + $window.location.host + "/lakeShoreWebProject/customer.html";
+	        $window.location.href = url;
 		};
 		
 	});	

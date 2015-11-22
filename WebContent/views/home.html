@@ -1,0 +1,11 @@
+<div ng-repeat="product in products" ng-show=app.isHome>
+	<h4>{{product.productName}}</h4>
+	<p>Price: {{product.price}}</p>
+	<p>Quantity: {{product.quantity}}</p>
+	<button ng-click="addToCart(product.productId)">Add to Cart</button>
+</div>
+
+<div ng-show=app.isCartSuccess>
+	<h2>{{info.message}}</h2>
+	<button ng-click="placeOrder()">Place Order</button>
+</div>

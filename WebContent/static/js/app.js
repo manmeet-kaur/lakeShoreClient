@@ -17,7 +17,6 @@
 	                });
 	          }]);
 	
-<<<<<<< HEAD
 	app.controller("mainController", function($scope, $http, $window) {
 		var baseUrl = 'http://localhost:8080';
 		var app = this;
@@ -26,32 +25,13 @@
 		app.cartSuccess = false;
 		this.showCart = false;
 		this.orderSuccess = false;
-=======
-	app.controller("HttpCtrl", function($scope, $http, $window) {
-		var baseUrl = 'http://localhost:8080';
-		var app = this;
-		$scope.navTitle = 'All Products';
-		$scope.home = true;
-		$scope.cartSuccess = false;
-		$scope.operation="";
-		$scope.isSaveDisabled = true;
-		$scope.isDeleteDisabled = true;
-		
-		this.isHome = function() {
-			return $scope.home;
-		};
->>>>>>> origin/master
 		
 		// retrieve all products
 		var response = $http.get(baseUrl + '/products');
 		response.success(function(data) {
 			$scope.products = data;
-<<<<<<< HEAD
 			console.log("isHome " + app.home)
 			console.log("[main] # of items: " + data.length)
-=======
-			console.log("[main] # of items: " + data.length);
->>>>>>> origin/master
 			angular.forEach(data, function(element) {
 				console.log("[main] product: " + element.productName);
 			});
@@ -71,24 +51,13 @@
 			var response = $http.post(url, cartRequest);
 			response.success(function(data){
 				$scope.info = data;
-<<<<<<< HEAD
 				app.cartSuccess = true;
-			})
-=======
-				$scope.cartSuccess = true;
-				$scope.home = false;
 			});
->>>>>>> origin/master
 			response.error(function(data, status, headers, config) {
 				alert("Failed to add to cart, status = " + status);
 			});
 		};
 		
-<<<<<<< HEAD
-=======
-		$scope.isCartSuccess = function() {
-			return $scope.cartSuccess;
-		};
 		
 //		$scope.getProduct = function(name) {
 //			var response = $http.get('/product/?name='+ name );
@@ -101,7 +70,6 @@
 //				alert("Failed to get data, status=" + status);
 //			})
 //		};
->>>>>>> origin/master
 		
 		// search a product by product name
 		$scope.searchProduct = function(name) {
@@ -123,7 +91,6 @@
 			});
 		};
 		
-<<<<<<< HEAD
 		// view cart
 		$scope.viewCart = function(url) {
 			var response = $http.get(url);
@@ -152,15 +119,6 @@
 			response.error(function(data, status, headers, config) {
 				alert("Failed to get data, status=" + status);
 			});
-=======
-		$scope.clearForm = function() {
-			$scope.actor = {
-					productId:'',
-					productName:'',
-					productType:'',
-					quantity:'',
-					vendorName:''
-			};
 		};
 		
 //		$scope.addNew = function(element) {
@@ -228,11 +186,6 @@
 			});
 		};
 		
-		$scope.viewAllCustomer = function() {
-			var url = "http://" + $window.location.host + "/lakeShoreWebProject/customer.html";
-	        $window.location.href = url;
->>>>>>> origin/master
-		};
 		
 		$scope.viewAllCustomer = function() {
 			var url = "http://" + $window.location.host + "/lakeShoreWebProject/customer.html";

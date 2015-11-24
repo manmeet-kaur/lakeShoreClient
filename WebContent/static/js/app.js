@@ -30,8 +30,8 @@
 		var response = $http.get(baseUrl + '/products');
 		response.success(function(data) {
 			$scope.products = data;
-			//console.log("app.products.links " + data.links[0]);
-			console.log("[main] # of items: " + data.links);
+
+			console.log("[main] # of items: " + data.length)
 			angular.forEach(data, function(element) {
 				console.log("[main] product: " + element.productName + "-" + element.links[0].url);
 			});

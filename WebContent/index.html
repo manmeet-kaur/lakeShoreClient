@@ -49,41 +49,67 @@
 					</table>
 			    </form>				
 				<ul class="list-group">
-					<li class="list-group-item" ng-repeat="product in products" ng-hide="main.cartSuccess">
+					<li class="list-group-item" ng-repeat="product in products" ng-show="showProducts">
 						<h4>{{product.productName}}</h4>
 						<em class="pull-right">{{product.price | currency}}</em>
 						<p>Quantity: {{product.quantity}}</p>
-						<a href="#" ng-click="addToCart(product.productId, product.links[0].url)">Add to Cart</a>
+						<a href="#" ng-click="doSelect(product.productId); addToCart(product.links[0].url, product.links[0].action)">Add to Cart</a>
 					</li>
 				</ul>
 				
 				<!-- Division for showing cart status message -->
 				
-				<div class="container" ng-show="main.cartSuccess">
+				<div class="container" ng-show="cartSuccess">
 					<h2>{{info.message}}</h2>
-					<a href="#" ng-click="viewCart(info.links[0].url)">View Cart</a>
-					<a href="#" ng-click="placeOrder(info.links[1].url)">Place Order</a>
+					<p><a href="#" ng-click="viewCart()">View Cart</a></p>
+					<p><a href="#" ng-click="placeOrder(info.links[0].url)">Place Order</a></p>
 				</div>
 				
 				<!-- Division for showing cart contents -->
-				
-				<div class=container  ng-show="main.showCart">
+				<div class=container  ng-show="showCart">
+				<p class="text-left"><strong>Your Cart</strong></p>
 				<ul class="list-group">
 					<li class="list-group-item" ng-repeat="item in items">
-						<h4>{{item.productId}}</h4>
-						<em class="pull-right">Quantity: {{item.quantity}}</em>
+						<h3>{{item.productName}}</h3>
+						<p>Quantity: {{item.quantity}}</p>
+						<p>Price: {{item.price | currency}}</p>
 					</li>
 				</ul>
-				<a href="#" ng-click="placeOrder(info.links[1].url)">Place Order</a>
+				<a href="#" ng-click="placeOrder(items[0].links[0].url)">Place Order</a>
 				</div>
 				
 				<!-- Division for showing order Status Message -->
 
-				<div class=container ng-show="main.orderSuccess">
-					<h2>{{info.message}}</h2>
-					<a href="#" ng-click="viewCart(info.links[0].url)">View Cart</a>
-					<a href="#" ng-click="placeOrder(info.links[1].url)">Place Order</a>
-				</div>				
+				<div class=container ng-show="orderSuccess">
+					<h2>{{order.message}}</h2>
+					<a href="#" ng-click="viewOrders(order.links[0].url)">View Orders</a>
+				</div>	
+				
+				<!-- Division for showing orders -->
+
+				<div class=container ng-show="showOrders">
+				<ul class="list-group">
+					<li class="list-group-item" ng-repeat="anOrder in orders">
+						<h4>Order Number: {{anOrder.orderId}}</h4>
+						<em>Ordered on: {{anOrder.orderDate | date:'yyyy-MM-dd HH:mm:ss Z'}}</em>
+						<p>Order Amount: {{anOrder.orderAmount | currency}}</p>
+ 						<ul class="list-group">
+							<li class="list-group-item" ng-repeat="lineItem in anOrder.lineItems">
+								<p>{{lineItem.productName}} </p>
+								<p>{{lineItem.orderLinePrice | currency}}</p>
+								<p>{{lineItem.orderLineQuantity}}</p>
+ 							</li>
+						</ul>
+						<a href="#" ng-click="checkOrderStatus(anOrder.links[0].url, anOrder.orderId)">Check Order Status</a>
+					</li>
+				</ul>
+				</div>	
+				
+				<div class=container ng-show=showOrderStatus>
+					<p class="text-left"><strong>Order Status For: {{orderData.orderId}}</strong></p>
+					<p>Order Status: {{orderData.orderStatus}}</p>
+					<p>Order Delivery Date: {{orderData.orderDeliveryDate | date:'yyyy-MM-dd HH:mm:ss Z'}}</p>
+				</div>			
 			</div>
 			<p></p>
 			<div class="footer">@Copyright WebServicesGroup</div>

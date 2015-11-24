@@ -17,91 +17,53 @@
 	                });
 	          }]);
 	
-<<<<<<< HEAD
 	app.controller("mainController", function($scope, $http, $window) {
 		var baseUrl = 'http://localhost:8080';
 		var app = this;
 		$scope.navTitle = 'All Products';
-		app.home = true;
-		app.cartSuccess = false;
-		this.showCart = false;
-		this.orderSuccess = false;
-=======
-	app.controller("HttpCtrl", function($scope, $http, $window) {
-		var baseUrl = 'http://localhost:8080';
-		var app = this;
-		$scope.navTitle = 'All Products';
-		$scope.home = true;
+		$scope.showProducts = true;
 		$scope.cartSuccess = false;
-		$scope.operation="";
-		$scope.isSaveDisabled = true;
-		$scope.isDeleteDisabled = true;
-		
-		this.isHome = function() {
-			return $scope.home;
-		};
->>>>>>> origin/master
-		
+		$scope.showCart = false;
+		$scope.orderSuccess = false;
+		$scope.showOrders = false;
 		// retrieve all products
 		var response = $http.get(baseUrl + '/products');
 		response.success(function(data) {
 			$scope.products = data;
-<<<<<<< HEAD
-			console.log("isHome " + app.home)
-			console.log("[main] # of items: " + data.length)
-=======
-			console.log("[main] # of items: " + data.length);
->>>>>>> origin/master
+			//console.log("app.products.links " + data.links[0]);
+			console.log("[main] # of items: " + data.links);
 			angular.forEach(data, function(element) {
-				console.log("[main] product: " + element.productName);
+				console.log("[main] product: " + element.productName + "-" + element.links[0].url);
 			});
 		});
 		response.error(function(data, status, headers, config) {
 			alert("Failed to get data from " + baseUrl + "/products- status =" + status);
 		});
 		
+		
+		$scope.doSelect = function(id) {
+			$scope.selected = id;
+		};
 
 		// add a product to the cart
-		$scope.addToCart = function(productId, url) {
+		$scope.addToCart = function(url, method) {
 			var cartRequest = {
 				customerId: 10000174,
-				productId: productId,
+				productId: $scope.selected,
 				quantity: 1
 			};
-			var response = $http.post(url, cartRequest);
+			console.log('selected ' + $scope.selected);
+			var response = $http.post(url , cartRequest);
 			response.success(function(data){
 				$scope.info = data;
-<<<<<<< HEAD
-				app.cartSuccess = true;
-			})
-=======
+				console.log(this.info);
+				$scope.showProducts = false;
 				$scope.cartSuccess = true;
-				$scope.home = false;
 			});
->>>>>>> origin/master
 			response.error(function(data, status, headers, config) {
 				alert("Failed to add to cart, status = " + status);
 			});
 		};
-		
-<<<<<<< HEAD
-=======
-		$scope.isCartSuccess = function() {
-			return $scope.cartSuccess;
-		};
-		
-//		$scope.getProduct = function(name) {
-//			var response = $http.get('/product/?name='+ name );
-//			
-//			response.success(function(data) {
-//				$scope.product = data;
-//		    })
-//			
-//			response.error(function(data, status, headers, config) {
-//				alert("Failed to get data, status=" + status);
-//			})
-//		};
->>>>>>> origin/master
 		
 		// search a product by product name
 		$scope.searchProduct = function(name) {
@@ -123,18 +85,18 @@
 			});
 		};
 		
-<<<<<<< HEAD
 		// view cart
-		$scope.viewCart = function(url) {
-			var response = $http.get(url);
-			response.succcess(function(data) {
-				this.items = data;
+		$scope.viewCart = function() {
+			var response = $http.get($scope.info.links[0].url + 10000174);
+			response.success(function(data) {
+				$scope.items = data;
+				$scope.showCart = true;
+				$scope.cartSuccess = false;
 				console.log("[viewCart] # of items: " + data.length);
 				angular.forEach(data, function(element) {
-					console.log("[viewCart] product:" + element.name + "-" + element.quantity);
+					console.log("[viewCart] product:" + element.productId + "-" + element.links[0].url);
 				});
-				this.showCart = true;
-				this.cartSuccess = false;
+				$scope.decideHttpRequest($scope.info.links[0]);
 			});
 			response.error(function(data, status, headers, config) {
 				alert("Failed to get data, status=" + status);
@@ -143,24 +105,46 @@
 		
 		// place order
 		$scope.placeOrder = function(url) {
-			var response = $http.get(url);
-			response.succcess(function(data) {
-				this.items = data;
-				console.log("[placeOrder] # of items: " + data.length);
-				this.orderSuccess = true;
+			var response = $http.put(url + 10000174);
+			response.success(function(data) {
+				$scope.order = data;
+				console.log("placed order Successfully " + data.message + "=" + data.links[0].url);
+				$scope.showCart = false;
+				$scope.orderSuccess = true;
+				console.log("order status " + $scope.orderSuccess);
 			});
 			response.error(function(data, status, headers, config) {
-				alert("Failed to get data, status=" + status);
+				alert("Failed to place order, status=" + status);
 			});
-=======
-		$scope.clearForm = function() {
-			$scope.actor = {
-					productId:'',
-					productName:'',
-					productType:'',
-					quantity:'',
-					vendorName:''
-			};
+		};
+		
+		// view orders
+		$scope.viewOrders = function(url) {
+			var response = $http.get(url + 10000174);
+			response.success(function(data) {
+				$scope.orders = data;
+				$scope.orderSuccess = false;
+				$scope.showOrders = true;
+				console.log("show Orders " + $scope.showOrders);
+				angular.forEach(data, function(element) {
+					console.log("[viewOrders] order :" + element.orderId + "-" + element.links[0].url);
+				});
+			});
+			response.error(function(data, status, headers, config) {
+				alert("Failed to place order, status=" + status);
+			});
+		};
+		
+		$scope.checkOrderStatus = function(url, orderId) {
+			var response = $http.get(url + orderId);
+			response.success(function(data) {
+				$scope.orderData = data;				
+				$scope.showOrders = false;
+				$scope.showOrderStatus = true;
+			});
+			response.error(function(data, status, headers, config) {
+				alert("Failed to place order, status=" + status);
+			});
 		};
 		
 //		$scope.addNew = function(element) {
@@ -207,6 +191,12 @@
 //			})
 //		};
 		
+		$scope.decideHttpRequest = function(data) {
+			console.log("url is " + data.url);
+			console.log("method is " + data.action);
+			console.log("rel is " + data.rel);
+		};
+		
 		$scope.resetSearch = function(name) {
 			var app = this;
 			$scope.operation="";
@@ -219,7 +209,7 @@
 			var response = $http.get('/product');
 			response.success(function(data) {
 				$scope.actors = data;
-				$scope.$apply();
+//				$scope.$apply();
 				console.log("[resetSearch] # of items: " + data.length);
 		    });
 			
@@ -228,11 +218,6 @@
 			});
 		};
 		
-		$scope.viewAllCustomer = function() {
-			var url = "http://" + $window.location.host + "/lakeShoreWebProject/customer.html";
-	        $window.location.href = url;
->>>>>>> origin/master
-		};
 		
 		$scope.viewAllCustomer = function() {
 			var url = "http://" + $window.location.host + "/lakeShoreWebProject/customer.html";

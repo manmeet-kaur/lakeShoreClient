@@ -1,9 +1,10 @@
 <html ng-app="app">
 	<head>
-		<title>Show Products</title>
+		<title>{{navTitle}}</title>
 		<link href="static/css/styles.css" rel="stylesheet"></link>
 		<!-- Use Bootstrap -->
 		<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+		<link href="static/css/signin.css" rel="stylesheet"></link>
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.16/angular.min.js"></script>
 		<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular-route.js"></script>
 		<script type="text/javascript" src="static/js/app.js"></script>
@@ -18,12 +19,25 @@
 				</div>
 				<div>
 					<ul class="nav navbar-nav">
-						<li class="active"><a href="#">Home</a></li>
+						<li class="active"><a href="#" ng-click="resetSearch()">Home</a></li>
 						<li><a href="#about">About</a></li>
 						<li><a href="#contact">Contact</a></li>
 					</ul>
-					<ul class="nav navbar-nav navbar-right">
-						<li><a href="register.html"><span class="glyphicon glyphicon-user"></span> Login </a></li>
+					<ul class="nav navbar-nav navbar-right" ng-show=login>
+						<li><a href="#" ng-click="registerUser()"><span class="glyphicon glyphicon-user"></span> Register </a></li>
+					</ul>
+					<ul class="nav navbar-nav navbar-right" ng-show=loggedIn>
+						<li><a href="#" data-toggle="dropdown" class="dropdown-toggle"><span class="glyphicon glyphicon-user"></span> {{customer.custFirstname}} {{customer.custLastName}}<b class="caret"></b> </a>
+    						<ul class="dropdown-menu">
+      							<li><a href="#" ng-click="viewAddress()">Address</a></li>
+      							<li><a href="#" ng-click="viewBilling()">Billing Details</a></li>
+      							<li class="divider"></li>
+      							<li><a href="#" ng-click="viewOrders()">Orders</a></li>
+      							<li><a href="#" ng-click="viewCart()">Cart</a></li>
+      							<li class="divider"></li>
+      							<li><a href="#" ng-click="logout()">Logout</a></li>
+    						</ul>
+    					</li>
 					</ul>
 				</div>
 			</div>
@@ -33,8 +47,30 @@
 			<div class="header">
 				<h1 class="custom">Welcome to Lake Shore Mart</h1>
 			</div>
+			<div class="container" ng-show="loggedOut"><p class="text-center text-primary">You have been logged out. Thanks for visiting.</p></div>
+			<div class="container" ng-show="login">
+		      <form name="loginForm" class="form-signin" action="">
+		        <h2 class="form-signin-heading">Please Sign In Here</h2>
+		        <label for="inputEmail" class="sr-only">Email address</label>
+		        <input type="email" name="inputEmail" id="inputEmail" ng-model="customer.email" class="form-control" placeholder="Email address" required autofocus />
+		        <span style="color:red" ng-show="loginForm.inputEmail.$dirty && loginForm.inputEmail.$invalid">
+		        <span ng-show="loginForm.inputEmail.$error.required">Email is required.</span>
+  				<span ng-show="loginForm.inputEmail.$error.email">Invalid email address.</span></span>
+		        <label for="inputPassword" class="sr-only">Password</label>
+		        <input type="password" name="inputPassword" id="inputPassword" ng-model="customer.password" class="form-control" placeholder="Password" required />
+				<span style="color:red" ng-show="loginForm.inputPassword.$dirty && loginForm.inputPassword.$invalid">
+				<span ng-show="loginForm.inputPassword.$error.required">Password is required.</span></span>
+		        <div class="checkbox">
+		          <label>
+		            <input type="checkbox" value="remember-me"> Remember me
+		          </label>
+		        </div>
+		        <button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="loginUser(customer)" ng-disabled="loginForm.inputEmail.$dirty && loginForm.inputEmail.$invalid || loginForm.inputPassword.$required">Sign in</button>
+		      </form>
+		      
+    		</div>
 			
-			<div class="container">
+			<div class="container" ng-show="showSearch">
 				<p></p>
 			    <form>
 			    	<table>
@@ -43,8 +79,8 @@
 							<td><input type="text" ng-model="searchName" size="30"></td>
 							<td><button type="button" ng-click="searchProduct(searchName)" class="btn btn-primary btn-sm">
 	      					<span class="glyphicon glyphicon-search"></span> Search </button></td>
-							<td><button ng-click="resetSearch()"  class="btn btn-info btn-sm">
-							<span class="glyphicon glyphicon-refresh"></span> Reset Search </button></td>
+							<!-- <td><button ng-click="resetSearch()"  class="btn btn-info btn-sm"> -->
+							<!-- <span class="glyphicon glyphicon-refresh"></span> Reset Search </button></td> -->
 						</tr>
 					</table>
 			    </form>				
@@ -56,7 +92,7 @@
 						<a href="#" ng-click="doSelect(product.productId); addToCart(product.links[0].url, product.links[0].action)">Add to Cart</a>
 					</li>
 				</ul>
-				
+			</div>	
 				<!-- Division for showing cart status message -->
 				
 				<div class="container" ng-show="cartSuccess">
@@ -89,9 +125,9 @@
 
 				<div class=container ng-show="showOrders">
 				<ul class="list-group">
-					<li class="list-group-item" ng-repeat="anOrder in orders">
+					<li class="list-group-item" ng-repeat="anOrder in orders | orderBy:'-orderDate'">
 						<h4>Order Number: {{anOrder.orderId}}</h4>
-						<em>Ordered on: {{anOrder.orderDate | date:'yyyy-MM-dd HH:mm:ss Z'}}</em>
+						<em>Ordered on: {{anOrder.orderDate | date:'yyyy-MM-dd HH:mm:ss'}}</em>
 						<p>Order Amount: {{anOrder.orderAmount | currency}}</p>
  						<ul class="list-group">
 							<li class="list-group-item" ng-repeat="lineItem in anOrder.lineItems">
@@ -108,17 +144,121 @@
 				<div class=container ng-show=showOrderStatus>
 					<p class="text-left"><strong>Order Status For: {{orderData.orderId}}</strong></p>
 					<p>Order Status: {{orderData.orderStatus}}</p>
-					<p>Order Delivery Date: {{orderData.orderDeliveryDate | date:'yyyy-MM-dd HH:mm:ss Z'}}</p>
-				</div>			
+					<p>Order Delivery Date: {{orderData.orderDeliveryDate | date:'yyyy-MM-dd HH:mm:ss'}}</p>
+				</div>		
+				
+				<div class=container ng-show="addressSuccess">
+					<h3><em>{{addrResponse.message}}</em></h3>
+					<a href="#" ng-click="viewAddress()">View Address Details</a>
+				</div>
+				
+				<div class=container ng-show="showAddress">
+					<p class="text-left"><strong>{{customer.custFirstname}} {{customer.custLastName}}'s Address Details</strong></p>
+				 	<ul class="list-group">
+						<li class="list-group-item" ng-repeat="address in addresses | orderBy:'-addrId'">
+							<p>{{address.custAddrLine1}} </p>
+							<p ng-show="address.custAddrLine2 != ''">{{address.custAddrLine2}}</p>
+							<p>{{address.custCity}}</p>
+							<p>{{address.custState}}</p>
+							<p>{{address.custZipCode}}</p>
+							<a href="#" ng-click="updateAddressModel(address)">Update Address</a> |
+							<a href="#" ng-click="deleteCustomerAddress(address.addrId)">Delete Address</a>
+						</li>
+					</ul>
+					<a href="#" ng-click="addAddress =! addAddress; showAddress =! showAddress">Add new Address</a>
+				</div>
+
+				<div class=container ng-show="addAddress">
+					<form name="addressForm" action="" >
+		        		Address Line 1: <input type="text" name="addrLine1" ng-model="custAddr.addrLine1" class="form-control" required autofocus />		        		
+		        		<span style="color:red" ng-show="addressForm.addrLine1.$dirty && addressForm.addrLine1.$invalid">
+		        		<span ng-show="addressForm.addrLine1.$error.required">Address Line 1 is required.</span></span>
+		        		Address Line 2: <input type="text" name="addrLine2" ng-model="custAddr.addrLine2" class="form-control"  />
+		        		City: <input type="text" name="city" ng-model="custAddr.city" class="form-control"  />
+						<span style="color:red" ng-show="addressForm.city.$dirty && addressForm.city.$invalid">
+		        		<span ng-show="addressForm.city.$error.required">City is required.</span></span>
+		        		State: <input type="text" name="state" ng-model="custAddr.state" class="form-control"  />
+		        		<span style="color:red" ng-show="addressForm.state.$dirty && addressForm.state.$invalid">
+		        		<span ng-show="addressForm.state.$error.required">State is required.</span></span>
+		        		Zip: <input type="text" name="zipCode" ng-model="custAddr.zipCode" class="form-control"  />	      
+						<span style="color:red" ng-show="addressForm.zipCode.$dirty && addressForm.zipCode.$invalid">
+		        		<span ng-show="addressForm.zip.$error.required">ZipCode is required.</span></span>  		
+				        <div class="checkbox">
+				          <label>
+				            <input type="checkbox" value="defaultAddress" ng-model="custAddr.default"> Default Address
+				          </label>
+				        </div>
+		        		<button class="btn btn-lg btn-primary btn-block" type="submit" ng-hide="updateAddress" ng-click="addCustomerAddress(custAddr)" ng-disabled="addressForm.addrLine1.$required">Add</button>
+		        		<button class="btn btn-lg btn-primary btn-block" type="submit" ng-show="updateAddress" ng-click="updateCustomerAddress(custAddr)">Update</button>
+		        		<button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="resetAddressForm()" ng-disabled="addressForm.addrLine1.$required">Cancel</button>
+		      		</form>
+				</div>
+
+				<div class=container ng-show="showBilling">
+					<p class="text-left"><strong>{{customer.custFirstname}} {{customer.custLastName}}'s Billing Details</strong></p>
+				 	<ul class="list-group">
+						<li class="list-group-item" ng-repeat="billing in billings">
+							<p><strong>Billing Address </strong></p>
+							<p>{{billing.custAddrLine1}} </p>
+							<p ng-show="address.custAddrLine2 != ''">{{address.custAddrLine2}}</p>
+							<p>{{address.custCity}}</p>
+							<p>{{address.custState}}</p>
+							<p>{{address.custZipCode}}</p>
+							<p><strong>Card Details </strong></p>
+							<p>{{billing.cardNo}}</p>
+							<p>{{billing.cardType}}</p>
+							<p>{{billing.cardType}}</p>
+							<a href="#" ng-click="billing.custBillId">Delete Billing Details</a>
+						</li>
+					</ul>
+					<a href="#" ng-click="addBilling = !addBilling; showBilling = !showBilling">Add new Billing Info</a>
+				</div>
+
+				<div class=container ng-show="addBilling">
+					<form name="billingForm" action="" >
+		        		Address Line 1: <input type="text" name="addrLine1" ng-model="billAddr.billAddrLine1" class="form-control" required autofocus />		        		
+		        		Address Line 2: <input type="text" name="addrLine2" ng-model="billAddr.billAddrLine2" class="form-control"  />
+		        		City: <input type="text" name="city" ng-model="billAddr.billCity" class="form-control"  />
+		        		State: <input type="text" name="state" ng-model="billAddr.billState" class="form-control"  />
+		        		Zip: <input type="text" name="zipCode" ng-model="billAddr.billZipCode" class="form-control"  />
+		        		Card No: <input type="text" name="cardNo" ng-model="billAddr.cardNo" class="form-control"  />
+		        		Card Type: <input type="text" name="cardNo" ng-model="billAddr.cardType" class="form-control"  />
+		        		CVV: <input type="text" name="cvv" ng-model="billAddr.cvv" class="form-control" />
+		        		Card Name: <input type="text" name="cardName" ng-model="billAddr.cardName" class="form-control" />
+		        		Card Expiry Month:
+		        		Card Expiry Year:
+				        <div class="checkbox">
+				          <label>
+				            <input type="checkbox" value="defaultBilling" ng-model="billAddr.default"> Default Billing
+				          </label>
+				        </div>
+		        		<button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="addBillingDetails(billAddr)">Add</button>
+		        		<button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="resetBillingForm()">Cancel</button>
+		      		</form>
+				</div>
+
 			</div>
+			
+
+			
+			
+			<div class=container ng-show=error>
+				<p class="text-center text-danger"><em>{{errorData.message}}</em></p>
+				<!-- <p class="text-center text-primary"><mark>Please re-enter correct credentials</mark></p> -->
+			</div>	
+			
 			<p></p>
-			<div class="footer">@Copyright WebServicesGroup</div>
-		</div>
+			<p></p>
+			<p></p>
+			<div class="footer navbar-fixed-bottom">@Copyright WebServicesGroup</div>
+	
 		
-				<div>
+
+		
+<!-- 		<div>
 			<br>
 			<button ng-click="viewAllCustomer()">View All Customer Details</button>
-		</div>
+		</div> -->
 	</body>
 	
 	<!-- Scripts for bootstrap and jquery -->

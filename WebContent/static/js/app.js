@@ -36,6 +36,7 @@
 		$scope.showBilling = false;
 		$scope.addAddress = false;
 		$scope.addressSuccess = false;
+		$scope.review = false;
 		$scope.custAddr = {
 			addrLine1: null,
 			addrLine2: null,
@@ -117,6 +118,7 @@
 			$scope.resetSearch();
 			$scope.showProducts = false;
 			$scope.showSearch = false;
+			$scope.review = false;
 			$scope.login = true;
 			$scope.loggedIn = false;
 			$scope.loggedOut = true;
@@ -138,6 +140,7 @@
 			$scope.addressSuccess = false;
 			$scope.showSearch = false;
 			$scope.showBilling = false;
+			$scope.review = false;
 			var response = $http.get($scope.customerSession.customerAddressURL);
 			response.success(function(data) {
 				$scope.addresses = data;
@@ -245,6 +248,7 @@
 			$scope.showBilling = true;
 			$scope.showSearch = false;
 			$scope.showAddress = false;
+			$scope.review = false;
 			var response = $http.get($scope.customerSession.customerBillingURL);
 			response.success(function(data) {
 				$scope.products = data;
@@ -274,6 +278,10 @@
 		$scope.doSelect = function(id) {
 			$scope.selected = id;
 		};
+		
+		$scope.doSelectName = function(name) {
+			$scope.selectedName = name;
+		};
 
 		// add a product to the cart
 		$scope.addToCart = function(url, method) {
@@ -288,6 +296,7 @@
 				$scope.info = data;
 				console.log(this.info);
 				$scope.showProducts = false;
+				$scope.review = false;
 				$scope.cartSuccess = true;
 			});
 			response.error(function(data, status, headers, config) {
@@ -301,6 +310,7 @@
 			$scope.navTitle = 'Search Criteria';
 			$scope.resetSearch();
 			$scope.showProducts = true;
+			$scope.review = false;
 			var response = $http.get(baseUrl + '/product/?name=' + name);
 			response.success(function(data) {
 				$scope.products = data;
@@ -316,6 +326,49 @@
 			});
 		};
 		
+		$scope.showReviews = function(links) {
+			$scope.navTitle = 'Product Review';
+			$scope.review = true;
+			$scope.showProducts = false;
+			$scope.addReviewLink = links[2];
+			var response = $http.get(links[1].url + $scope.selected);
+			response.success(function(data) {
+				$scope.reviews = data;
+				console.log("[product reviews] # of items: " + data.length);
+				angular.forEach(data, function(element) {
+					console.log("[product reviews] desc: " + element.reviewDesc);
+				});
+
+		    });
+			
+			
+			response.error(function(data, status, headers, config) {
+				alert("Failed to get data, status=" + status);
+			});
+		};
+		
+		// add a review
+		$scope.postReview = function(desc) {
+			var reviewRequest = {
+				customerId: $scope.customerId,
+				productId: $scope.selected,
+				reviewDescription: desc,
+				reviewType: 'product'
+			};
+			console.log('selected ' + $scope.selected);
+			var response = $http.post($scope.addReviewLink.url, reviewRequest);
+			response.success(function(data){
+				$scope.reviews = data;
+				console.log("[product reviews] # of items: " + data.length);
+				angular.forEach(data, function(element) {
+					console.log("[product reviews] desc: " + element.reviewDesc);
+				});
+			});
+			response.error(function(data, status, headers, config) {
+				alert("Failed to post data, status=" + status);
+			});
+		};
+		
 		//Reset page
 		$scope.resetSearch = function() {
 			$scope.login = false;
@@ -325,6 +378,7 @@
 			$scope.showCart = false;
 			$scope.orderSuccess = false;
 			$scope.showOrders = false;
+			$scope.review = false;
 			$scope.user = {};
 			$scope.error = false;
 			$scope.showBilling = false;
@@ -335,6 +389,7 @@
 		
 		// view cart
 		$scope.viewCart = function() {
+			$scope.review = false;
 			$http({method: 'GET', url: $scope.customerSession.customerCartURL}).
 			 then(function(response) {
 				$scope.items = response.data;
@@ -351,6 +406,7 @@
 		
 		// place order
 		$scope.placeOrder = function(url) {
+			$scope.review = false;
 			var response = $http.put(url + $scope.customer.custId);
 			response.success(function(data) {
 				$scope.order = data;
@@ -366,6 +422,7 @@
 		
 		// view orders
 		$scope.viewOrders = function() {
+			$scope.review = false;
 			var response = $http.get($scope.customerSession.customerOrdersURL);
 			response.success(function(data) {
 				$scope.orders = data;
@@ -383,6 +440,7 @@
 		
 		//check order status
 		$scope.checkOrderStatus = function(url, orderId) {
+			$scope.review = false;
 			var response = $http.get(url + orderId);
 			response.success(function(data) {
 				$scope.orderData = data;				

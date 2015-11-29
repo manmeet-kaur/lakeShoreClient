@@ -86,10 +86,37 @@
 			    </form>				
 				<ul class="list-group">
 					<li class="list-group-item" ng-repeat="product in products" ng-show="showProducts">
-						<h4>{{product.productName}}</h4>
-						<em class="pull-right">{{product.price | currency}}</em>
-						<p>Quantity: {{product.quantity}}</p>
-						<a href="#" ng-click="doSelect(product.productId); addToCart(product.links[0].url, product.links[0].action)">Add to Cart</a>
+						<div>
+							<h4>{{product.productName}}</h4>
+							<em class="pull-right">{{product.price | currency}}</em>
+							<p>Quantity: {{product.quantity}}</p>
+							<a href="#" ng-click="doSelect(product.productId); addToCart(product.links[0].url, product.links[0].action)">Add to Cart</a>&nbsp; &nbsp;
+							<a href="#" ng-click="doSelect(product.productId); doSelectName(product.productName); showReviews(product.links)">View/Add Review</a>
+						</div>
+					</li>
+				</ul>
+			</div>
+			
+			<!-- Division for showing/adding Reviews -->
+			
+			<div class="container" ng-show="review">
+				<h4>{{selectedName}}</h4>
+				<form>
+			    	<table style="width:80%">
+						<tr>
+							<td><label for="review">Post a review here</label></td>
+							<td><textarea class = "form-control" rows = "3" ng-model="reviewDesc"></textarea></td>
+							<td><button type="button" ng-click="postReview(reviewDesc)" class="btn btn-primary btn-sm">
+	      					<span class="glyphicon glyphicon-comment"></span> Submit </button></td>
+						</tr>
+					</table>
+			    </form>
+			    <ul class="list-group">
+					<li class="list-group-item" ng-repeat="review in reviews">
+						<div>
+							<h5>{{review.customerName}} commented: </h5>
+							<p>{{review.reviewDesc}}</p>
+						</div>
 					</li>
 				</ul>
 			</div>	

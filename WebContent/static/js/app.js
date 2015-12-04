@@ -19,6 +19,7 @@
 	
 	app.controller("mainController", function($scope, $http, $window) {
 		var baseUrl = 'http://localhost:8080';
+		var entryPoint = baseUrl + '/customer/login';
 		var app = this;
 		$scope.navTitle = 'All Products';
 		$scope.login = true;
@@ -28,7 +29,6 @@
 		$scope.showCart = false;
 		$scope.orderSuccess = false;
 		$scope.showOrders = false;
-		$scope.user = {};
 		$scope.error = false;
 		$scope.loggedIn = false;
 		$scope.loggedOut = false;
@@ -45,18 +45,23 @@
 			zipCode: null,
 			addrId: null
 		};
+		$scope.message = "";
+		$scope.messageFlag = false;
 		$scope.updateAddress = false;
 		//customer session variables
-		//$scope.customerId = null;
 		$scope.customerSession = {
 				customerId: null,
 				customerFirstName: null,
 				customerLastName: null,
-				customerAddressURL: null,
-				customerBillingURL: null,
-				customerOrdersURL: null,
-				customerCartURL: null
-			};
+				customerLinks: []
+		};
+		this.datatype = null;
+		this.linkAttributes = {
+			rel: null,
+			action: null,
+			mediaType: null,
+			url: null
+		};
 		
 		
 //		// register user
@@ -81,81 +86,93 @@
 		
 		// authenticate user
 		$scope.loginUser = function(customer) {
+			$scope.resetAll();
 			this.user = angular.copy(customer);
-			console.log(this.user.email);
-			console.log(this.user.password);
-			var response = $http.post(baseUrl + '/customer/login', this.user);
-			response.success(function(data,status) {
-				$scope.error = false;
-				$scope.customer = data;
+			$http({method: 'POST', url: entryPoint, data: this.user}).
+			then(function(response) {
+				$scope.customer = response.data;
 				console.log("customerId " + $scope.customer.custId);
 				console.log("customer first name " + $scope.customer.custFirstname);
 				console.log("customerId " + $scope.customer.custLastName);
 				$scope.login = false;
 				$scope.showSearch = true;
 				$scope.loggedIn = true;
-				$scope.customerId = $scope.customer.custId;
 				$scope.customerSession = {
 						customerId: $scope.customer.custId,
 						customerFirstName: $scope.customer.custFirstname,
 						customerLastName: $scope.customer.custLastName,
-						customerAddressURL: $scope.customer.links[0].url + $scope.customer.custId,
-						customerBillingURL: $scope.customer.links[1].url + $scope.customer.custId,
-						customerOrdersURL: $scope.customer.links[2].url + $scope.customer.custId,
-						customerCartURL: $scope.customer.links[3].url + $scope.customer.custId
 				};
-			});
-			response.error(function(data, status, headers, config) {
-				console.log(data);
-				$scope.errorData = data;
+
+				for(i=0; i < $scope.customer.links.length; i++) {
+					this.data = $scope.customer.links[i]; 
+					if (data.rel == "viewAddress")
+						$scope.viewAddressLink = data;
+					else if(data.rel == "updateCustomer")
+						$scope.updateCustomerLink = data;
+					else if(data.rel == "viewCart")
+						$scope.viewCartLink = data;
+					else if(data.rel == "viewOrders")
+						$scope.viewOrdersLink = data;
+					else if(data.rel == "viewBilling")
+						$scope.viewBillingLink = data;
+					else if(data.rel == "showAll")
+						$scope.viewAllLink = data;
+				};
+				$scope.loginForm.$setPristine();
+				$scope.showAll();
+			}, function(response) {
+				console.log(response.data);
+				$scope.errorData = response.data;
 				$scope.error = true;
-			});		
+			});	
 		};
 		
 		// logout User
 		$scope.logout = function() {
 			$scope.navTitle = 'Customer Logged Out';
-			$scope.resetSearch();
-			$scope.showProducts = false;
-			$scope.showSearch = false;
-			$scope.review = false;
+			$scope.resetAll();
 			$scope.login = true;
+			$scope.loginForm.$setPristine();
 			$scope.loggedIn = false;
 			$scope.loggedOut = true;
 			$scope.customerSession =  null;
-			var response = $http.get($scope.customerSession.customerAddressURL);
-			response.success(function(data) {
-				$scope.products = data;
-				console.log("address: " + data)
-		    });
-			response.error(function(data, status, headers, config) {
-				alert("Failed to get data, status=" + status);
-			});
 		};
 		
 		// view address details
 		$scope.viewAddress = function() {
 			$scope.navTitle = 'Customer Address';
-			$scope.showAddress = true;
-			$scope.addressSuccess = false;
-			$scope.showSearch = false;
-			$scope.showBilling = false;
-			$scope.review = false;
-			var response = $http.get($scope.customerSession.customerAddressURL);
-			response.success(function(data) {
-				$scope.addresses = data;
-				$scope.addAddressInfo = data[0].links[1];
-				console.log("address: " + $scope.customerSession.customerAddressURL)
-				console.log("showAddress: " + $scope.showAddress)
-		    });
-			response.error(function(data, status, headers, config) {
-				alert("Failed to get data, status=" + status);
+			$scope.processLink($scope.viewAddressLink);
+			$scope.resetAll();
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+
+				$scope.showAddress = true;				
+				$scope.addresses = response.data;
+				console.log("length of addresses: " + $scope.addresses.length);
+				element = $scope.addresses[0];
+				for(i=0;i<element.links.length;i++)
+					if(element.links[i].rel == "addAddress") {
+						$scope.addAddressLink = element.links[i];
+						break;
+					}
+				console.log("in success of show address: " + $scope.showAddress)
+			}, function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
 			});
 		};
 
-
 		// add Address
 		$scope.addCustomerAddress = function(custAddr) {
+			$scope.processLink($scope.addAddressLink);
 			var addressRequest = {
 				addrLine1: custAddr.addrLine1,
 				addrLine2: custAddr.addrLine2,
@@ -164,7 +181,16 @@
 				zipCode: custAddr.zipCode,
 				customerId: $scope.customerSession.customerId
 			}
-			$http({method: 'POST', url: $scope.addAddressInfo.url, data: addressRequest}).
+			$scope.processLink($scope.addAddressLink);
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				data: addressRequest,
+				dataType: this.dataType,
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+					}
+				}).
 			 then(function(response) {
 				$scope.addrResponse = response.data;
 				$scope.addressSuccess = true;
@@ -176,7 +202,8 @@
 				$scope.error = true;
 			});
 		};
-		// update Address
+
+		// update Address Model for showing previous values in form
 		$scope.updateAddressModel = function(addressInfo) {
 			$scope.updateAddress = true;
 			$scope.custAddr = {
@@ -185,7 +212,8 @@
 				city: addressInfo.custCity,
 				state: addressInfo.custState,
 				zipCode: addressInfo.custZipCode,
-				addrId: addressInfo.addrId
+				addrId: addressInfo.addrId,
+				links: addressInfo.links
 			}
 			$scope.addAddress = true;
 			$scope.showAddress = false;
@@ -193,16 +221,32 @@
 		};
 		
 		// reset Address Form
-		$scope.resetAddress = function() {
+		$scope.resetAddressForm = function() {
+			console.log("in here - reset address");
 			$scope.custAddr = null;
 			$scope.addAddress = false;
 			$scope.showAddress = true;
 			$scope.updateAddress = false;
-			console.log("resetting address form" + $scope.custAddr.addrLine1);
 		};
 		
+		// reset Billing Form
+		$scope.resetBillingForm = function() {
+			console.log("in here - reset billing");
+			$scope.bill = null;
+			$scope.addBilling = false;
+			$scope.showBilling = true;
+		};
+		
+
+		
 		// update Address
-		$scope.updateCustomerAddress = function() {
+		$scope.updateCustomerAddress = function(custAddr) {
+			for(i = 0; i < custAddr.links.length; i++) {
+				if(custAddr.links[i].rel == "updateAddress") {
+					$scope.processLink(custAddr.links[i]);
+					break;
+				}
+			}
 			var addressRequest = {
 				addrLine1: $scope.custAddr.addrLine1,
 				addrLine2: $scope.custAddr.addrLine2,
@@ -212,12 +256,21 @@
 				customerId: $scope.customerSession.customerId,
 				addrId: $scope.custAddr.addrId
 			}
-			$http({method: 'PUT', url: $scope.addresses[0].links[0].url, data: addressRequest}).
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				data: addressRequest,
+				dataType: this.dataType,
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+					}
+				}).
 			 then(function(response) {
 				$scope.addrResponse = response.data;
 				$scope.addressSuccess = true;
 				$scope.updateAddress = false;
 				$scope.addAddress = false;
+				$scope.addressForm.$setPristine();
 			},
 			function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
@@ -227,13 +280,27 @@
 		};
 		
 		// delete Address
-		$scope.deleteCustomerAddress = function(addrId) {
-			$http({method: 'DELETE', url: $scope.addresses[0].links[2].url + '?addrId=' + addrId}).
+		$scope.deleteCustomerAddress = function(links) {
+			for(i = 0; i < links.length; i++) {
+				if(links[i].rel == "deleteAddress") {
+					$scope.processLink(links[i]);
+					break;
+				}
+			}
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+					}
+				}).
 			 then(function(response) {
 				$scope.addrResponse = response.data;
 				$scope.addressSuccess = true;
 				$scope.showAddress = false;
-				console.log("deleting customer address - " + addrId + "=" + $scope.addresses[0].links[2].url)
+				console.log("deleted address successfully");
 			},
 			function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
@@ -245,18 +312,105 @@
 		// view billing details
 		$scope.viewBilling = function() {
 			$scope.navTitle = 'Customer Billing Details';
-			$scope.showBilling = true;
-			$scope.showSearch = false;
-			$scope.showAddress = false;
-			$scope.review = false;
-			var response = $http.get($scope.customerSession.customerBillingURL);
-			response.success(function(data) {
-				$scope.products = data;
-				console.log("billing: " + data)
-		    });
-			
-			response.error(function(data, status, headers, config) {
-				alert("Failed to get data, status=" + status);
+			console.log("billing Link: " + $scope.viewBillingLink);
+			$scope.processLink($scope.viewBillingLink);
+			$scope.resetAll();
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+					}
+			}).then(function(response) {
+				console.log("in success response");
+				$scope.showBilling = true;
+				$scope.billingInfo = response.data;
+				console.log("billing: " + $scope.billingInfo.length);
+
+				element = $scope.billingInfo[0];
+				for(i=0;i<element.links.length;i++) {
+					if(element.links[i].rel == "addBilling") {
+						$scope.addBillingLink = element.links[i];
+						break;
+					}
+				}
+
+			}, function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
+			});
+		};
+		
+		// add Billing
+		$scope.addCustomerBilling = function(bill) {
+			$scope.processLink($scope.addBillingLink);
+			var billingRequest = {
+				billAddrLine1: bill.billAddrLine1,
+				billAddrLine2: bill.billAddrLine2,
+				billCity: bill.billCity,
+				billState: bill.billState,
+				billZipCode: bill.billZipCode,
+				cardType: bill.cardType,
+				cardName: bill.cardName,
+				cardNo: bill.cardNo,
+				cvv: bill.cvv,
+				cardExpiry: bill.cardExpiry,
+				customerId: $scope.customerSession.customerId
+			}
+			$scope.processLink($scope.addBillingLink);
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				data: billingRequest,
+				dataType: this.dataType,
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+					}
+				}).
+			 then(function(response) {
+				$scope.billResponse = response.data;
+				$scope.billSuccess = true;
+				$scope.addBilling = false;
+			},
+			function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
+			});
+		};
+		
+		
+		//delete customer billing
+		$scope.deleteCustomerBilling = function(links) {
+			for(i = 0; i < links.length; i++) {
+				if(links[i].rel == "deleteBilling") {
+					$scope.processLink(links[i]);
+					break;
+				}
+			}
+			$scope.resetAll();
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+					}
+				}).
+			 then(function(response) {
+				$scope.billResponse = response.data;
+
+				$scope.billSuccess = true;
+				console.log("deleted address successfully");
+			},
+			function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
 			});
 		};
 		
@@ -274,33 +428,65 @@
 //			alert("Failed to get data from " + baseUrl + "/products- status =" + status);
 //		});
 		
+		$scope.showAll = function() {
+			$scope.resetAll();
+			$scope.processLink($scope.viewAllLink);
+			console.log("show products link: " + $scope.viewAllLink.url);
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				$scope.products = response.data;
+				$scope.showSearch = true;
+				$scope.showProducts = true;			
+			},function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
+			});
+		}
 		
-		$scope.doSelect = function(id) {
-			$scope.selected = id;
-		};
 		
 		$scope.doSelectName = function(name) {
 			$scope.selectedName = name;
 		};
 
 		// add a product to the cart
-		$scope.addToCart = function(url, method) {
+		$scope.addToCart = function(links, productId) {
 			var cartRequest = {
-				customerId: $scope.customerId,
-				productId: $scope.selected,
+				customerId: $scope.customerSession.customerId,
+				productId: productId,
 				quantity: 1
 			};
-			console.log('selected ' + $scope.selected);
-			var response = $http.post(url , cartRequest);
-			response.success(function(data){
-				$scope.info = data;
-				console.log(this.info);
-				$scope.showProducts = false;
-				$scope.review = false;
-				$scope.cartSuccess = true;
-			});
-			response.error(function(data, status, headers, config) {
-				alert("Failed to add to cart, status = " + status);
+			$scope.resetAll();
+			for(i=0;i<links.length; i++) {
+				var element = links[i]; 
+				if(element.rel == "addCart") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: cartRequest, 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				$scope.info = response.data;
+				console.log(this.cart);
+				$scope.cartSuccess = true;				
+			},function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
 			});
 		};
 		
@@ -308,9 +494,9 @@
 		$scope.searchProduct = function(name) {
 			var app = this;
 			$scope.navTitle = 'Search Criteria';
-			$scope.resetSearch();
+			$scope.resetAll();
+			$scope.showSearch = true;
 			$scope.showProducts = true;
-			$scope.review = false;
 			var response = $http.get(baseUrl + '/product/?name=' + name);
 			response.success(function(data) {
 				$scope.products = data;
@@ -350,7 +536,7 @@
 		// add a review
 		$scope.postReview = function(desc) {
 			var reviewRequest = {
-				customerId: $scope.customerId,
+				customerId: $scope.customerSession.customerId,
 				productId: $scope.selected,
 				reviewDescription: desc,
 				reviewType: 'product'
@@ -369,32 +555,29 @@
 			});
 		};
 		
-		//Reset page
-		$scope.resetSearch = function() {
-			$scope.login = false;
-			$scope.showSearch = true;
-			$scope.showProducts = false;
-			$scope.cartSuccess = false;
-			$scope.showCart = false;
-			$scope.orderSuccess = false;
-			$scope.showOrders = false;
-			$scope.review = false;
-			$scope.user = {};
-			$scope.error = false;
-			$scope.showBilling = false;
-			$scope.showAddress = false;
-			$scope.addAddress = false;
-			$scope.addressSuccess = false;
-		};
+
 		
 		// view cart
 		$scope.viewCart = function() {
-			$scope.review = false;
-			$http({method: 'GET', url: $scope.customerSession.customerCartURL}).
-			 then(function(response) {
-				$scope.items = response.data;
-				$scope.showCart = true;
-				$scope.cartSuccess = false;
+			$scope.processLink($scope.viewCartLink);
+			$scope.resetAll();
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response) {
+				if(response.data.length == 0) {
+					$scope.message = "Your cart is empty. Search products and continue shopping.";
+					$scope.messageFlag = true;
+				}
+				else {
+					$scope.items = response.data;
+					$scope.showCart = true;
+				}
 			},
 			function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
@@ -402,83 +585,210 @@
 				$scope.error = true;
 			});
 		};
-
+		
+		// check Out
+		$scope.checkOut = function() {
+			console.log("in checkout");
+			$scope.resetAll();
+			$scope.checkOut = true; // should not be included in the resetAll() function
+			console.log("checkout value: " + $scope.checkOut);
+			$scope.viewBilling();
+		};
+		
+		// select payment
+		$scope.selectPayment = function(links) {
+			$scope.checkOut = false; // should not be included in the resetAll() function
+			$scope.resetAll();
+			for(i=0;i<links.length; i++) {
+				var element = links[i]; 
+				if(element.rel == "selectPayment") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				$scope.paymentInfo = response.data;
+				$scope.selectPaymentSuccess = true;
+			},function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
+			});
+		};
 		
 		// place order
-		$scope.placeOrder = function(url) {
-			$scope.review = false;
-			var response = $http.put(url + $scope.customer.custId);
-			response.success(function(data) {
-				$scope.order = data;
-				console.log("placed order Successfully " + data.message + "=" + data.links[0].url);
-				$scope.showCart = false;
+		$scope.placeOrder = function(links) {
+			$scope.resetAll();
+			
+			for(i=0;i<links.length; i++) {
+				var element = links[i]; 
+				if(element.rel == "placeOrder") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response) {
+				$scope.order = response.data;
 				$scope.orderSuccess = true;
-				console.log("order status " + $scope.orderSuccess);
-			});
-			response.error(function(data, status, headers, config) {
-				alert("Failed to place order, status=" + status);
+			}, function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
 			});
 		};
 		
 		// view orders
 		$scope.viewOrders = function() {
-			$scope.review = false;
-			var response = $http.get($scope.customerSession.customerOrdersURL);
-			response.success(function(data) {
-				$scope.orders = data;
-				$scope.orderSuccess = false;
-				$scope.showOrders = true;
-				console.log("show Orders " + $scope.showOrders);
-				angular.forEach(data, function(element) {
-					console.log("[viewOrders] order :" + element.orderId + "-" + element.links[0].url);
-				});
-			});
-			response.error(function(data, status, headers, config) {
-				alert("Failed to place order, status=" + status);
+			$scope.processLink($scope.viewOrdersLink);
+			$scope.resetAll();
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				if(response.data.length == 0) {
+					$scope.message = "No Orders exist for you. Please continue Shopping.";
+					$scope.messageFlag = true;
+				}
+				else {
+					$scope.orders = response.data;
+					$scope.showOrders = true;
+					angular.forEach(response.data, function(element) {
+						console.log("[viewOrders] order :" + element.orderId + "-" + element.links[0].url);
+					});
+				}
+			},function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
 			});
 		};
 		
-		//check order status
-		$scope.checkOrderStatus = function(url, orderId) {
-			$scope.review = false;
-			var response = $http.get(url + orderId);
-			response.success(function(data) {
-				$scope.orderData = data;				
-				$scope.showOrders = false;
-				$scope.showOrderStatus = true;
+		// cancel order
+		$scope.cancelOrder = function(links) {
+			$scope.resetAll();
+			
+			for(i=0;i<links.length; i++) {
+				var element = links[i]; 
+				if(element.rel == "cancelOrder") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response) {
+				$scope.orderInfo = response.data;
+				$scope.cancelSuccess = true;
+			}, function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
 			});
-			response.error(function(data, status, headers, config) {
-				alert("Failed to place order, status=" + status);
+		};
+
+		//check order status
+		$scope.checkOrderStatus = function(links) {
+			$scope.resetAll();
+			
+			for(i=0;i<links.length; i++) {
+				var element = links[i]; 
+				if(element.rel == "checkStatus") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '',
+//				transformResponse: appendTransform($http.defaults.transformResponse, function(value) {
+//					var x2s = new X2S();
+//					var json = x2s.xml_str2json(data);
+//					return json;
+//				}),
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response, headers){
+				$scope.orderData = response.data;
+				console.log($scope.orderData.orderId);
+				console.log($scope.orderData.orderStatus);
+				$scope.showOrderStatus = true;
+			}, function(response){
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.error = true;
 			});
 		};	
-
 		
-		$scope.decideHttpRequest = function(data) {
-			console.log("url is " + data.url);
-			console.log("method is " + data.action);
-			console.log("rel is " + data.rel);
+		$scope.processLink = function(data) {
+			if(data.mediaType == "application/json") 
+				this.dataType = "json";
+			else if(data.mediaType == "application/xml")
+				this.dataType = "xml";
+			$scope.linkAttributes = {
+					rel: data.rel,
+					method: data.action,
+					mediaType: data.mediaType,
+					url: data.url
+				}
 		};
 		
-//		$scope.resetSearch = function(name) {
-//			var app = this;
-//			$scope.operation="";
-//			$scope.clearForm();
-//			$scope.isSaveDisabled = true;
-//			$scope.isDeleteDisabled = true;
-//			$scope.navTitle = 'All Products';
-//			$scope.searchName = '';
-//			
-//			var response = $http.get('/product');
-//			response.success(function(data) {
-//				$scope.actors = data;
-////				$scope.$apply();
-//				console.log("[resetSearch] # of items: " + data.length);
-//		    });
-//			
-//			response.error(function(data, status, headers, config) {
-//				alert("Failed to get data, status=" + status);
-//			});
-//		};
+		//Reset page
+		$scope.resetAll = function() {
+			console.log("in reset all");
+			$scope.login = false;
+			$scope.showSearch = false;
+			$scope.showProducts = false;
+			$scope.cartSuccess = false;
+			$scope.showCart = false;
+			$scope.orderSuccess = false;
+			$scope.showOrders = false;
+			$scope.review = false;
+			$scope.error = false;
+			$scope.showBilling = false;
+			$scope.showAddress = false;
+			$scope.addAddress = false;
+			$scope.addressSuccess = false;
+			$scope.billSuccess = false;
+			$scope.addBilling = false;
+			$scope.message = "";
+			$scope.messageFlag = false;
+			$scope.selectPaymentSuccess = false;
+			$scope.showOrderStatus = false;
+			$scope.cancelSuccess = false;
+		};
 		
 		
 		$scope.viewAllCustomer = function() {

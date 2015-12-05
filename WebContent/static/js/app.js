@@ -6,21 +6,25 @@
 	            function($routeProvider) {
 	              $routeProvider.
 	                when('/', {
-	                  templateUrl: 'index.jsp',
+	                  templateUrl: 'index.html',
 	                  controller: 'mainController'
 	              }).
 	                when('/cartAdded', {
 	                  templateUrl: 'views/status.html',
 	                }).
 	                otherwise({
-	                  redirectTo: '/index.jsp'
+	                  redirectTo: '/index.html'
 	                });
 	          }]);
+
 	
-	app.controller("mainController", function($scope, $http, $window) {
+	app.controller("mainController", function($rootScope, $scope, $http, $window, $route, $routeParams, $location) {
 		var baseUrl = 'http://localhost:8080';
 		var entryPoint = baseUrl + '/customer/login';
 		var app = this;
+		this.$route = $route;
+		this.$location = $location;
+		this.$routeParams = $routeParams;
 		$scope.navTitle = 'All Products';
 		$scope.login = true;
 		$scope.showSearch = false;
@@ -35,8 +39,10 @@
 		$scope.showAddress = false;
 		$scope.showBilling = false;
 		$scope.addAddress = false;
+		$scope.showRegister = false;
 		$scope.addressSuccess = false;
 		$scope.review = false;
+		$scope.checkOut = false;
 		$scope.custAddr = {
 			addrLine1: null,
 			addrLine2: null,
@@ -62,27 +68,77 @@
 			mediaType: null,
 			url: null
 		};
+
 		
+		// register user
+		$scope.registerUser = function(registration) {
+			$scope.resetAll();
+			var customerRequest = {
+				email: registration.email,
+				firstName: registration.firstName,
+				lastName: registration.lastName,
+				password: registration.password
+			};
+			
+			$http({
+				method: 'POST', 
+				url: baseUrl + '/customer/addCustomer', 
+				dataType: 'json',
+				data: customerRequest, 
+				headers: {
+					"Content-Type": 'application/json'
+				}
+			}).then(function(response){
+				$scope.customer = response.data;
+				if(response.data.length == 0){
+					$scope.message = "Account with this email already exists. Please login or use a different email id";
+					$scope.messageFlag = true;
+					$scope.showRegister = true;
+				}
+				else {	
+				$scope.form.$setPristine();
+				$scope.showSearch = true;
+				$scope.loggedIn = true;
+				$scope.customerSession = {
+						customerId: $scope.customer.custId,
+						customerFirstName: $scope.customer.custFirstname,
+						customerLastName: $scope.customer.custLastName,
+				};
+
+				for(i=0; i < $scope.customer.links.length; i++) {
+					this.data = $scope.customer.links[i]; 
+					if (data.rel == "viewAddress")
+						$scope.viewAddressLink = data;
+					else if(data.rel == "updateCustomer")
+						$scope.updateCustomerLink = data;
+					else if(data.rel == "viewCart")
+						$scope.viewCartLink = data;
+					else if(data.rel == "viewOrders")
+						$scope.viewOrdersLink = data;
+					else if(data.rel == "viewBilling")
+						$scope.viewBillingLink = data;
+					else if(data.rel == "showAll")
+						$scope.viewAllLink = data;
+				};
+				$scope.message = "Welcome to LakeShoreMart.You can start shopping and update address/billing in your profile";
+				$scope.messageFlag = true;
+				$scope.showAll();
+				}
+			},function(response){
+				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
+				$scope.error = true;
+			});	
+		};
 		
-//		// register user
-//		$scope.registerUser = function(id) {
-//			var customer = {
-//				email: 	
-//			};
-//			$scope.login = true;
-//			$scope.showSearch = false;
-//			var response = $http.get(baseUrl + '/customer/addCustomer');
-//			response.success(function(data) {
-//				$scope.customer = data;
-//				console.log("customerId " + $scope.customer.custId);
-//				console.log("customer first name " + $scope.customer.custFirstName);
-//				console.log("customerId " + $scope.customer.custLastName);
-//			});
-//			response.error(function(data, status, headers, config) {
-//				alert("Failed to get data from " + baseUrl + "/customer/login- status =" + status);
-//			});		
-//		};
-		
+		$scope.setErrorMessage = function(status) {
+			if(status == 404)
+				$scope.errorMessage= "Oops!! Its 404. Looks like you have entered the wrong information. Please correct the error. ";
+			else if(status == 500)
+				$scope.errorMessage= "Oops!! Its 500. Looks like server is experiencing some problem. Please try after some time. ";
+			else if(status == 405)
+				$scope.errorMessage= "Oops!! Its 405. Not a valid method. Please rectify or contact the system administrator";
+		}
 		
 		// authenticate user
 		$scope.loginUser = function(customer) {
@@ -91,9 +147,6 @@
 			$http({method: 'POST', url: entryPoint, data: this.user}).
 			then(function(response) {
 				$scope.customer = response.data;
-				console.log("customerId " + $scope.customer.custId);
-				console.log("customer first name " + $scope.customer.custFirstname);
-				console.log("customerId " + $scope.customer.custLastName);
 				$scope.login = false;
 				$scope.showSearch = true;
 				$scope.loggedIn = true;
@@ -121,9 +174,10 @@
 				$scope.loginForm.$setPristine();
 				$scope.showAll();
 			}, function(response) {
-				console.log(response.data);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
+				$scope.login = true;
 			});	
 		};
 		
@@ -152,9 +206,8 @@
 					"Content-Type": this.linkAttributes.mediaType
 				}
 			}).then(function(response){
-
-				$scope.showAddress = true;				
 				$scope.addresses = response.data;
+				$scope.showAddress = true;
 				console.log("length of addresses: " + $scope.addresses.length);
 				element = $scope.addresses[0];
 				for(i=0;i<element.links.length;i++)
@@ -166,6 +219,7 @@
 			}, function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -199,6 +253,7 @@
 			function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -305,6 +360,7 @@
 			function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -340,12 +396,14 @@
 			}, function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
 		
 		// add Billing
 		$scope.addCustomerBilling = function(bill) {
+			$scope.resetAll();
 			$scope.processLink($scope.addBillingLink);
 			var billingRequest = {
 				billAddrLine1: bill.billAddrLine1,
@@ -378,6 +436,7 @@
 			function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -410,6 +469,7 @@
 			function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -447,6 +507,7 @@
 			},function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		}
@@ -486,6 +547,7 @@
 			},function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -508,7 +570,10 @@
 		    });
 			
 			response.error(function(data, status, headers, config) {
-				alert("Failed to get data, status=" + status);
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
+				$scope.error = true;
 			});
 		};
 		
@@ -529,7 +594,10 @@
 			
 			
 			response.error(function(data, status, headers, config) {
-				alert("Failed to get data, status=" + status);
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
+				$scope.error = true;
 			});
 		};
 		
@@ -551,7 +619,10 @@
 				});
 			});
 			response.error(function(data, status, headers, config) {
-				alert("Failed to post data, status=" + status);
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
+				$scope.error = true;
 			});
 		};
 		
@@ -582,6 +653,7 @@
 			function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -620,6 +692,7 @@
 			},function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -650,6 +723,7 @@
 			}, function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -681,6 +755,7 @@
 			},function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -711,6 +786,7 @@
 			}, function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};
@@ -748,6 +824,7 @@
 			}, function(response){
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
 		};	
@@ -777,6 +854,7 @@
 			$scope.showOrders = false;
 			$scope.review = false;
 			$scope.error = false;
+			$scope.errorData = false;
 			$scope.showBilling = false;
 			$scope.showAddress = false;
 			$scope.addAddress = false;
@@ -788,8 +866,19 @@
 			$scope.selectPaymentSuccess = false;
 			$scope.showOrderStatus = false;
 			$scope.cancelSuccess = false;
+			$scope.showRegister = false;
+			$scope.errorMessage = "";
 		};
 		
+		$scope.resetMessages = function() {
+			$scope.message = "";
+			$scope.messageFlag = false;
+		};
+		
+		$scope.resetRegisterForm = function() {
+				$scope.form.$setPristine();
+				$scope.registration = null;
+		}
 		
 		$scope.viewAllCustomer = function() {
 			var url = "http://" + $window.location.host + "/lakeShoreWebProject/customer.html";

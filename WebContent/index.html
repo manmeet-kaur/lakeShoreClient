@@ -24,15 +24,18 @@
 						<li><a href="#about">About</a></li>
 						<li><a href="#contact">Contact</a></li>
 					</ul>
-					<ul class="nav navbar-nav navbar-right" ng-show=login>
-						<li><a href="#" ng-click="registerUser()"><span class="glyphicon glyphicon-user"></span> Register </a></li>
+					<ul class="nav navbar-nav navbar-right" ng-hide="showRegister || loggedIn">
+						<li><a href="#" ng-click="resetRegisterForm(); login = !login; showRegister = !showRegister"><span class="glyphicon glyphicon-user"></span> Register </a></li>
+					</ul>
+					<ul class="nav navbar-nav navbar-right" ng-show="showRegister">
+						<li><a href="#" ng-click="showRegister = !showRegister; login = !login"><span class="glyphicon glyphicon-user"></span> Login </a></li>
 					</ul>
 					<ul class="nav navbar-nav navbar-right" ng-show=loggedIn>
 						<li><a href="#" data-toggle="dropdown" class="dropdown-toggle"><span class="glyphicon glyphicon-user"></span> {{customer.custFirstname}} {{customer.custLastName}}<b class="caret"></b> </a>
     						<ul class="dropdown-menu">
     							<li><a href="#" ng-click="updateCustomer()">Update Your Info</a></li>
       							<li><a href="#" ng-click="viewAddress()">Address</a></li>
-      							<li><a href="#" ng-click="viewBilling()">Billing Details</a></li>
+      							<li><a href="#" ng-click="checkOut = false;viewBilling()">Billing Details</a></li>
       							<li class="divider"></li>
       							<li><a href="#" ng-click="viewOrders()">Orders</a></li>
       							<li><a href="#" ng-click="viewCart()">Cart</a></li>
@@ -44,11 +47,12 @@
 				</div>
 			</div>
 		</nav>
-	
-	  	<div class="container">
+
+	  	<div class="container" ng-hide="showRegister">
 			<div class="header">
 				<h1 class="custom">Welcome to Lake Shore Mart</h1>
 			</div>
+
 			<div class="container" ng-show="loggedOut"><p class="text-center text-primary">You have been logged out. Thanks for visiting.</p></div>
 			<div class="container" ng-show="login">
 		      <form name="loginForm" class="form-signin" action="">
@@ -67,7 +71,7 @@
 		            <input type="checkbox" value="remember-me"> Remember me
 		          </label>
 		        </div>
-		        <button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="loginUser(customer)" ng-disabled="loginForm.inputEmail.$dirty && loginForm.inputEmail.$invalid || loginForm.inputPassword.$required">Sign in</button>
+		        <button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="loginUser(customer)" ng-disabled="(loginForm.inputEmail.$dirty && loginForm.inputEmail.$invalid) || loginForm.inputPassword.$error.required">Sign in</button>
 		      </form>
 		      
     		</div>
@@ -202,7 +206,7 @@
 				<div class=container ng-show="showAddress">
 					<p class="text-left"><strong>{{customer.custFirstname}} {{customer.custLastName}}'s Address Details</strong></p>
 				 	<ul class="list-group">
-						<li class="list-group-item" ng-repeat="address in addresses | orderBy:'-addrId'">
+						<li class="list-group-item" ng-show="addresses[0].addrId != null" ng-repeat="address in addresses | orderBy:'-addrId'">
 							<p>{{address.custAddrLine1}} </p>
 							<p ng-show="address.custAddrLine2 != ''">{{address.custAddrLine2}}</p>
 							<p>{{address.custCity}}</p>
@@ -250,7 +254,7 @@
 				<div class=container ng-show="showBilling">
 					<p class="text-left"><strong>{{customer.custFirstname}} {{customer.custLastName}}'s Billing Details</strong></p>
 				 	<ul class="list-group">
-						<li class="list-group-item" ng-repeat="billing in billingInfo">
+						<li class="list-group-item" ng-show="billingInfo[0].custBillId != null" ng-repeat="billing in billingInfo">
 							<p><strong>Billing Address </strong></p>
 							<p>{{billing.billAddrLine1}} </p>
 							<p ng-show="billing.custAddrLine2 != ''">{{billing.billAddrLine2}}</p>
@@ -269,32 +273,85 @@
 
 				<div class=container ng-show="addBilling">
 					<form name="billingForm" action="" >
-		        		Address Line 1: <input type="text" name="billAddrLine1" ng-model="bill.billAddrLine1" class="form-control" required autofocus />		        		
+		        		Address Line 1: <input type="text" name="billAddrLine1" ng-model="bill.billAddrLine1" class="form-control" required autofocus />
+		        		<span ng-show="billingForm.billAddrLine1.$dirty && billingForm.billAddrLine1.$error.required">Please enter address line 1</span>		        		
 		        		Address Line 2: <input type="text" name="billAddrLine2" ng-model="bill.billAddrLine2" class="form-control"  />
-		        		City: <input type="text" name="billCity" ng-model="bill.billCity" class="form-control"  />
-		        		State: <input type="text" name="billState" ng-model="bill.billState" class="form-control"  />
-		        		Zip: <input type="text" name="billZipCode" ng-model="bill.billZipCode" class="form-control"  />
-		        		Card No: <input type="text" name="cardNo" ng-model="bill.cardNo" class="form-control"  />
+		        		City: <input type="text" name="billCity" ng-model="bill.billCity" class="form-control" required />
+		        		<span ng-show="billingForm.billCity.$dirty && billingForm.billCity.$error.required">City is required</span>
+		        		State: <input type="text" name="billState" ng-model="bill.billState" class="form-control" required ng-maxlength=2 ng-minlength=2 />
+		        		<span ng-show="billingForm.billState.$dirty && billingForm.billState.$error.required">State is required</span>
+		        		<span ng-show="billingForm.billState.$dirty && (billingForm.billState.$error.minlength || billingForm.billState.$error.maxlength)">Card Number should be of 16 digits</span>
+		        		Zip: <input type="text" name="billZipCode" ng-model="bill.billZipCode" class="form-control" required />
+		        		<span ng-show="billingForm.billZipCode.$dirty && billingForm.billZipCode.$error.required">Zip is required</span>
+		        		Card No: <input type="text" name="cardNo" ng-model="bill.cardNo" class="form-control" ng-maxlength=16 ng-minlength=16 required />
+		        		<span ng-show="billingForm.cardNo.$dirty && billingForm.cardNo.$error.required">Card Number is required</span>
+		        		<span ng-show="billingForm.cardNo.$dirty && (billingForm.cardNo.$error.minlength || billingForm.cardNo.$error.maxlength)">Card Number should be of 16 digits</span>
 		        		Card Type:
-		        		<select name="cardType" ng-model="bill.cardType" class="form-control">
+		        		<select name="cardType" ng-model="bill.cardType" class="form-control" required>
 		        			<option value="VISA">VISA</option>
 		        			<option value="MasterCard">MasterCard</option>
 		        			<option value="AMEX">American Express</option>
 		        		</select>
-		        		CVV: <input type="password" name="cvv" ng-model="bill.cvv" class="form-control" />
-		        		Card Name: <input type="text" name="cardName" ng-model="bill.cardName" class="form-control" />
-		        		Card Expiry Date: <input type="date" name="cardExpiry" ng-model="bill.cardExpiry" class="form-control" />
-		        		<button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="addCustomerBilling(bill)">Add</button>
+		        		<span ng-show="billingForm.cardType.$dirty && billingForm.cardType.$error.required">Card Type is required</span>
+		        		CVV: <input type="password" name="cvv" ng-model="bill.cvv" class="form-control" required />
+		        		<span ng-show="billingForm.cvv.$dirty && billingForm.cvv.$error.required">CVV is required</span>
+		        		Card Name: <input type="text" name="cardName" ng-model="bill.cardName" class="form-control" required />
+		        		<span ng-show="billingForm.cardName.$dirty && billingForm.cardName.$error.required">Card Name is required</span>
+		        		Card Expiry Date: <input type="date" name="cardExpiry" ng-model="bill.cardExpiry" class="form-control" required />
+		        		<span ng-show="billingForm.cardExpiry.$dirty && billingForm.cardExpiry.$error.required">Card Expiry is required</span>
+		        		<button class="btn btn-lg btn-primary btn-block" ng-disabled="billingForm.$invalid || (billingForm.$error.minlength || billingForm.$error.maxlength || billingForm.$error.required)" type="submit" ng-click="addCustomerBilling(bill)">Add</button>
 		        		<button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="resetBillingForm()">Cancel</button>
 		      		</form>
 				</div>
 			</div>
-			<div class=container ng-show=messageFlag>
+	
+	<div class="container" ng-show="showRegister">
+		<form role="form" class="form-horizontal" name="form" action="">
+			<div class="form-group">
+		 		<label class="control-label">First Name:</label>
+		    	<input type="text" class="form-control" ng-model="registration.firstName" ng-model="registration.firstName" name="firstName" placeholder="First Name" required autofocus />
+		      	<span ng-show="form.firstName.$dirty && form.firstName.$error.required">Tell us your First name.</span>
+ 			</div>
+ 			<div class="form-group">
+		 		<label class="control-label">Last Name:</label>
+		    	<input type="text" class="form-control" ng-model="registration.lastName" ng-model="registration.lastName" name="lastName" placeholder="Last Name" required />
+				<span ng-show="form.lastName.$dirty && form.lastName.$error.required">Tell us your Last name.</span>
+ 			</div>
+ 			<div class="form-group">
+    			<label class="control-label">E-mail:</label>
+    			<input type="email" name="email" class="form-control" ng-model="registration.email" placeholder="E-mail address" required/>
+				<span ng-show="form.email.$dirty && form.email.$error.required">Tell us your email</span>
+				<span ng-show="form.email.$dirty && form.email.$error.email">Please enter a valid email</span>
+  			</div>
+
+			<div class="form-group">
+  				<label class="control-label">Password:</label>
+  				<input type="password" name="password" class="form-control" ng-model="registration.password" placeholder="Password" required/>
+				<span ng-show="form.password.$dirty && form.password.$error.required">Tell us your password</span>
+			</div>
+			
+        	<div class="form-group">
+          		<label class="control-label">Repeat password:</label>
+          		<input type="password" name="password2" class="form-control" ng-model="registration.password2" placeholder="Repeat password" required/>
+				<span ng-show="form.password2.$dirty && form.password2.$error.required">Enter password again</span>
+        	</div>
+        
+        	<div class="form-group">
+          		<button type="submit" class="btn btn-primary btn-block btn-small" ng-disabled="form.$invalid || form.$error.required" ng-click="registerUser(registration)">Register</button>
+        	</div>
+        	<div class="form-group">
+          		<button type="submit" class="btn btn-primary btn-block btn-small" ng-click="resetMessages(); showRegister = !showRegister; login = !login">Cancel</button>
+        	</div>
+		</form>
+	</div>
+			<div class=container ng-show="messageFlag">
 				<p class="text-center text-danger"><em>{{message}}</em></p>
 			</div>	
+
 			
-			<div class=container ng-show=error>
-				<p class="text-center alert-danger"><em>{{errorData.message}}</em></p>
+			<div class=container ng-show="error">
+			<p class="alert alert-center alert-danger"><em>{{errorMessage}}</em></p>
+				<p class="text-center alert-danger"><em>Error Message from Server: {{errorData.message}}</em></p>
 			</div>	
 
 			<div class="footer navbar-fixed-bottom">@Copyright WebServicesGroup</div>

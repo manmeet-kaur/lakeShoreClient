@@ -512,6 +512,9 @@
 			});
 		}
 		
+		$scope.doSelect = function(id) {
+ 			$scope.selected = id;
+ 		};
 		
 		$scope.doSelectName = function(name) {
 			$scope.selectedName = name;
@@ -582,7 +585,7 @@
 			$scope.review = true;
 			$scope.showProducts = false;
 			$scope.addReviewLink = links[2];
-			var response = $http.get(links[1].url + $scope.selected);
+			var response = $http.get(links[1].url);
 			response.success(function(data) {
 				$scope.reviews = data;
 				console.log("[product reviews] # of items: " + data.length);

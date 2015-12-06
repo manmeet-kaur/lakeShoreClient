@@ -20,7 +20,7 @@
 				</div>
 				<div>
 					<ul class="nav navbar-nav">
-						<li class="active"><a href="#" ng-click="resetAll(); showSearch = !showSearch">Home</a></li>
+						<li class="active"><a href="#" ng-click="resetAll(); showAll(); showSearch = !showSearch">Home</a></li>
 						<li><a href="#about">About</a></li>
 						<li><a href="#contact">Contact</a></li>
 					</ul>
@@ -85,7 +85,7 @@
 							<td><input type="text" ng-model="searchName" size="30"></td>
 							<td><button type="button" ng-click="searchProduct(searchName)" class="btn btn-primary btn-sm">
 	      					<span class="glyphicon glyphicon-search"></span> Search </button></td>
-							<!-- <td><button ng-click="resetSearch()"  class="btn btn-info btn-sm"> -->
+							<td><a href="#" class="btn btn-lg btn-default" ng-click="showAll()">See All Products</a></td>
 							<!-- <span class="glyphicon glyphicon-refresh"></span> Reset Search </button></td> -->
 						</tr>
 					</table>
@@ -118,7 +118,7 @@
 					</table>
 			    </form>
 			    <ul class="list-group">
-					<li class="list-group-item" ng-repeat="review in reviews">
+					<li class="list-group-item" ng-repeat="review in reviews | orderBy:'-reviewId'">
 						<div>
 							<h5>{{review.customerName}} commented: </h5>
 							<p>{{review.reviewDesc}}</p>

@@ -119,10 +119,13 @@
 						$scope.viewBillingLink = data;
 					else if(data.rel == "showAll")
 						$scope.viewAllLink = data;
+					else if(data.rel == "productSearch")
+						$scope.productSearchLink = data;
+
 				};
 				$scope.message = "Welcome to LakeShoreMart.You can start shopping and update address/billing in your profile";
 				$scope.messageFlag = true;
-				$scope.showAll();
+				$scope.showAllProducts();
 				}
 			},function(response){
 				$scope.errorData = response.data;
@@ -138,6 +141,8 @@
 				$scope.errorMessage= "Oops!! Its 500. Looks like server is experiencing some problem. Please try after some time. ";
 			else if(status == 405)
 				$scope.errorMessage= "Oops!! Its 405. Not a valid method. Please rectify or contact the system administrator";
+			else
+				$scope.errorMessage= "Oops!! Looks like the server is having issues. Please try again later.";
 		}
 		
 		// authenticate user
@@ -170,12 +175,19 @@
 						$scope.viewBillingLink = data;
 					else if(data.rel == "showAll")
 						$scope.viewAllLink = data;
+					else if(data.rel == "productSearch")
+						$scope.productSearchLink = data;
+					else if(data.rel == "showVendorProducts")
+						$scope.viewVendorProducts = data;
+					else if(data.rel == "showVendorOrders")
+						$scope.viewVendorOrders = data;
 				};
 				$scope.loginForm.$setPristine();
-				$scope.showAll();
 			}, function(response) {
 				$scope.errorData = response.data;
 				$scope.setErrorMessage(response.status);
+				if(response.status == 404)
+					$scope.setErrorMessage("Invalid UserID/Password");
 				$scope.error = true;
 				$scope.login = true;
 			});	
@@ -190,6 +202,17 @@
 			$scope.loggedIn = false;
 			$scope.loggedOut = true;
 			$scope.customerSession =  null;
+			$scope.viewAddressLink = null;
+			$scope.updateCustomerLink = null;
+			$scope.viewCartLink = null;
+			$scope.viewOrdersLink = null;
+			$scope.viewBillingLink = null;
+			$scope.viewAllLink = null;
+			$scope.viewVendorProducts = null;
+			$scope.viewVendorOrders = null;
+			$scope.productSearchLink = null;
+			$scope.customer = null;
+			$scope.searchName = null;
 		};
 		
 		// view address details
@@ -291,8 +314,6 @@
 			$scope.addBilling = false;
 			$scope.showBilling = true;
 		};
-		
-
 		
 		// update Address
 		$scope.updateCustomerAddress = function(custAddr) {
@@ -474,24 +495,14 @@
 			});
 		};
 		
-//		// retrieve all products
-//		var response = $http.get(baseUrl + '/products');
-//		response.success(function(data) {
-//			$scope.products = data;
-//
-//			console.log("[main] # of items: " + data.length)
-//			angular.forEach(data, function(element) {
-//				console.log("[main] product: " + element.productName + "-" + element.links[0].url);
-//			});
-//		});
-//		response.error(function(data, status, headers, config) {
-//			alert("Failed to get data from " + baseUrl + "/products- status =" + status);
-//		});
-		
-		$scope.showAll = function() {
+		$scope.showAllProducts = function() {
 			$scope.resetAll();
-			$scope.processLink($scope.viewAllLink);
-			console.log("show products link: " + $scope.viewAllLink.url);
+			console.log("hello");
+			if($scope.viewAllLink)
+				$scope.processLink($scope.viewAllLink);
+			else if($scope.viewVendorProducts)
+				$scope.processLink($scope.viewVendorProducts);
+			
 			$http({
 				method: this.linkAttributes.method, 
 				url: this.linkAttributes.url, 
@@ -503,7 +514,25 @@
 			}).then(function(response){
 				$scope.products = response.data;
 				$scope.showSearch = true;
-				$scope.showProducts = true;			
+				$scope.showProducts = true;
+				var element = $scope.products[0];
+				console.log("==>" + element.links[0]);
+				for(i=0; i < element.links.length; i++) {
+					this.data = element.links[i]; 
+					if (data.rel == "showReviews")
+						$scope.showReviewsLink = true;
+					else if(data.rel == "addCart")
+						$scope.addCartLink = true;
+					else if(data.rel == "addProduct")
+						$scope.addProductLink = true;
+					else if(data.rel == "deleteProduct")
+						$scope.deleteProductLink = true;
+					else if(data.rel == "updateProduct")
+						$scope.updateProductLink = true;
+					else if(data.rel == "addReview")
+						$scope.addReviewLink = true;
+				};
+				console.log("showProducts"+$scope.showProducts);
 			},function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
@@ -511,6 +540,7 @@
 				$scope.error = true;
 			});
 		}
+			
 		
 		$scope.doSelect = function(id) {
  			$scope.selected = id;
@@ -528,6 +558,7 @@
 				quantity: 1
 			};
 			$scope.resetAll();
+			
 			for(i=0;i<links.length; i++) {
 				var element = links[i]; 
 				if(element.rel == "addCart") {
@@ -535,6 +566,7 @@
 					break;
 				}
 			}
+			
 			$http({
 				method: this.linkAttributes.method, 
 				url: this.linkAttributes.url, 
@@ -560,24 +592,46 @@
 			var app = this;
 			$scope.navTitle = 'Search Criteria';
 			$scope.resetAll();
-			$scope.showSearch = true;
-			$scope.showProducts = true;
-			var response = $http.get(baseUrl + '/product/?name=' + name);
-			response.success(function(data) {
-				$scope.products = data;
-				console.log("[searchProduct] # of items: " + data.length)
-				angular.forEach(data, function(element) {
-					console.log("[searchProduct] product: " + element.name);
-				});
-
-		    });
 			
-			response.error(function(data, status, headers, config) {
+			$scope.processLink($scope.productSearchLink);
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url + name, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				$scope.products = response.data;
+				$scope.showSearch = true;
+				$scope.showProducts = true;
+				console.log("# of products" + $scope.products.length);
+				var element1 = $scope.products[0];
+				for(i=0; i < element1.links.length; i++) {
+					this.data = element1.links[i]; 
+					if (data.rel == "showReviews")
+						$scope.showReviewsLink = true;
+					else if(data.rel == "addCart")
+						$scope.addCartLink = true;
+					else if(data.rel == "addProduct")
+						$scope.addProductLink = true;
+					else if(data.rel == "deleteProduct")
+						$scope.deleteProductLink = true;
+					else if(data.rel == "updateProduct")
+						$scope.updateProductLink = true;
+					else if(data.rel == "addReview")
+						$scope.addReviewLink = true;
+				};
+			}
+			
+			, function(response){
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
 				$scope.setErrorMessage(response.status);
 				$scope.error = true;
 			});
+			
 		};
 		
 		$scope.showReviews = function(links) {
@@ -733,8 +787,13 @@
 		
 		// view orders
 		$scope.viewOrders = function() {
-			$scope.processLink($scope.viewOrdersLink);
+			if($scope.viewOrdersLink)
+				$scope.processLink($scope.viewOrdersLink);
+			else if($scope.viewVendorOrders)
+				$scope.processLink($scope.viewVendorOrders);
+			
 			$scope.resetAll();
+			
 			$http({
 				method: this.linkAttributes.method, 
 				url: this.linkAttributes.url, 
@@ -745,17 +804,63 @@
 				}
 			}).then(function(response){
 				if(response.data.length == 0) {
-					$scope.message = "No Orders exist for you. Please continue Shopping.";
+					$scope.message = "No Orders exist for you.";
 					$scope.messageFlag = true;
 				}
 				else {
 					$scope.orders = response.data;
 					$scope.showOrders = true;
+					
+					var element = $scope.orders[0];
+					console.log("==>" + element.links[0]);
+					for(i=0; i < element.links.length; i++) {
+						this.data = element.links[i]; 
+						if (data.rel == "cancelOrder")
+							$scope.cancelOrderLink = true;
+						else if(data.rel == "checkStatus")
+							$scope.checkStatusLink = true;
+						else if(data.rel == "viewOrderDetails")
+							$scope.viewOrderDetailsLink = true;
+						else if(data.rel == "shipOrder")
+							$scope.shipOrderLink = true;
+					};
+					
 					angular.forEach(response.data, function(element) {
 						console.log("[viewOrders] order :" + element.orderId + "-" + element.links[0].url);
 					});
 				}
 			},function(response) {
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
+				$scope.error = true;
+			});
+		};
+		
+		// ship order
+		$scope.shipOrder = function(links) {
+			$scope.resetAll();
+			
+			for(i=0;i<links.length; i++) {
+				var element = links[i]; 
+				if(element.rel == "shipOrder") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response) {
+				$scope.shipInfo = response.data;
+				$scope.shipSuccess = true;
+			}, function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
 				$scope.setErrorMessage(response.status);
@@ -849,6 +954,7 @@
 		$scope.resetAll = function() {
 			console.log("in reset all");
 			$scope.login = false;
+			$scope.loggedOut = false;
 			$scope.showSearch = false;
 			$scope.showProducts = false;
 			$scope.cartSuccess = false;
@@ -864,13 +970,23 @@
 			$scope.addressSuccess = false;
 			$scope.billSuccess = false;
 			$scope.addBilling = false;
-			$scope.message = "";
+			$scope.message = null;
 			$scope.messageFlag = false;
 			$scope.selectPaymentSuccess = false;
 			$scope.showOrderStatus = false;
 			$scope.cancelSuccess = false;
 			$scope.showRegister = false;
-			$scope.errorMessage = "";
+			$scope.errorMessage = null;
+			$scope.addProductLink = false;
+			$scope.deleteProductLink = false;
+			$scope.updateProductLink = false;
+			$scope.updateProductLink = false;
+			$scope.addCartLink = false;
+			$scope.showReviewLink = false;
+			$scope.cancelOrderLink = false;
+			$scope.shipOrderLink = false;
+			$scope.checkStatusLink = false;
+			$scope.shipSuccess = false;
 		};
 		
 		$scope.resetMessages = function() {

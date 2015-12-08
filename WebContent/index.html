@@ -136,7 +136,7 @@
 						</div>
 					</li>
 				</ul>
-				<a href="#" ng-show="addProductLink" class="btn btn-lg btn-default" ng-click="addProduct()">Add Product</a>
+				<a href="#" ng-show="addProductLink" class="btn btn-lg btn-default" ng-click="addProduct = true">Add Product</a>
 			</div>
 			
 
@@ -331,6 +331,29 @@
 		        		<button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="resetBillingForm()">Cancel</button>
 		      		</form>
 				</div>
+				
+				<div class=container ng-show="addProductLink && addProduct">
+					<form name="productForm" action="" >
+		        		Product Name: <input type="text" name="productName" ng-model="newProduct.productName" class="form-control" required autofocus />
+		        		<span ng-show="productForm.productName.$dirty && roductForm.productName.$error.required">Please enter product NAme</span>		        		
+		        		Product Type: <select name="productType" ng-model="newProduct.productType" class="form-control" required>
+		        			<option value="Bath&Body">Bath&Body</option>
+		        			<option value="Food">Food</option>
+		        			<option value="Home">Home</option>
+		        		</select>
+		        		<span ng-show="newProduct.productType.$dirty && newProduct.productType.$error.required">Product Type is required</span>
+		        		Product Description: <input type="text" name="productDesc" ng-model="newProduct.productDesc" class="form-control" required />
+		        		<span ng-show="newProduct.productDesc.$dirty && newProduct.productDesc.$error.required">Product Description is required</span>
+		        		Quantity: <input type="number" name="quantity" ng-model="newProduct.quantity" class="form-control" required min=5 />
+		        		<span ng-show="newProduct.quantity.$dirty && newProduct.quantity.$error.required">Quantity is required</span>
+		        		<span ng-show="newProduct.quantity.$dirty && (newProduct.quantity.$error.min)">Minimum quantity should be 5</span>
+		        		Price: <input type="number" name="price" ng-model="newProduct.price" class="form-control" required min=1/>
+		        		<span ng-show="newProduct.price.$dirty && newProduct.price.$error.required">Price is required</span>
+		        		<button class="btn btn-lg btn-primary btn-block" ng-disabled="productForm.$invalid || (productForm.$error.min || productForm.$error.required)" type="submit" ng-click="addProductInfo(newProduct)">Add Product</button>
+		        		<button class="btn btn-lg btn-primary btn-block" type="submit" ng-click="resetAll(); newProduct=null; showAllProducts()">Cancel</button>
+		      		</form>
+				</div>
+				
 			</div>
 	
 	<div class="container" ng-show="showRegister">

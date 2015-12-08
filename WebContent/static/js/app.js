@@ -19,7 +19,8 @@
 
 	
 	app.controller("mainController", function($rootScope, $scope, $http, $window, $route, $routeParams, $location) {
-		var baseUrl = 'http://localhost:8080';
+		var baseUrl = "https://sam-lakeshoremart.herokuapp.com";
+//		var baseUrl = "http://localhost:8080";
 		var entryPoint = baseUrl + '/customer/login';
 		var app = this;
 		this.$route = $route;
@@ -186,11 +187,13 @@
 						$scope.viewVendorOrders = data;
 				};
 				$scope.loginForm.$setPristine();
+				$scope.messageFlag = true;
+				$scope.message = "Welcome!!!";
 			}, function(response) {
 				$scope.errorData = response.data;
 				$scope.setErrorMessage(response.status);
 				if(response.status == 404)
-					$scope.setErrorMessage("Invalid UserID/Password");
+					$scope.errorMessage = "Invalid UserID/Password";
 				$scope.error = true;
 				$scope.login = true;
 			});	
@@ -603,7 +606,7 @@
 			var app = this;
 			$scope.navTitle = 'Search Criteria';
 			$scope.resetAll();
-			
+			console.log($scope.productSearchLink);
 			$scope.processLink($scope.productSearchLink);
 			$http({
 				method: this.linkAttributes.method, 
@@ -640,6 +643,10 @@
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
 				$scope.setErrorMessage(response.status);
+				if(response.status == 404) {
+					$scope.showSearch = true;
+					$scope.errorMessage = "Product with name " + name + " does not exist. Please try another search";
+				}
 				$scope.error = true;
 			});
 			
@@ -767,8 +774,51 @@
 			});
 		};
 
+		// Add product Info
+		$scope.addProductInfo = function(newProduct) {
+			$scope.resetAll();
+			var productRequest = {
+				vendorId: $scope.customerSession.customerId,
+				productId: newProduct.productId,
+				quantity: newProduct.quantity,
+				price: newProduct.price,
+				productDescription: newProduct.productDesc,
+				productType: newProduct.productType,
+				productName: newProduct.productName
+			};
+			console.log('adding product for vendor' + $scope.customerSession.customerId);
+			for(i=0;i<$scope.products[0].links.length; i++) {
+				var element = $scope.products[0].links[i]; 
+				if(element.rel == "addProduct") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: productRequest, 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				$scope.productInfo = response.data;
+				$scope.message = $scope.productInfo.message;
+				$scope.messageFlag = true;
+				
+			},function(response){
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
+				$scope.error = true;				
+			});
+		};
+		
 		// Delete product 
 		$scope.deleteProductInfo = function(product) {
+			$scope.resetAll();
 			console.log('selected for delete' + product.productId);
 			for(i=0;i<product.links.length; i++) {
 				var element = product.links[i]; 
@@ -1097,6 +1147,7 @@
 			$scope.cancelSuccess = false;
 			$scope.showRegister = false;
 			$scope.errorMessage = null;
+			$scope.addProduct = false;
 			$scope.addProductLink = false;
 			$scope.deleteProductLink = false;
 			$scope.updateProductLink = false;

@@ -41,8 +41,8 @@
 		$scope.addAddress = false;
 		$scope.showRegister = false;
 		$scope.addressSuccess = false;
-		$scope.review = false;
-		$scope.checkOut = false;
+		$scope.showReview = false;
+		$scope.checkingOut = false;
 		$scope.custAddr = {
 			addrLine1: null,
 			addrLine2: null,
@@ -134,13 +134,16 @@
 			});	
 		};
 		
+		
 		$scope.setErrorMessage = function(status) {
 			if(status == 404)
-				$scope.errorMessage= "Oops!! Its 404. Looks like you have entered the wrong information. Please correct the error. ";
+				$scope.errorMessage= "Oops!! Its 404. The resource you are trying to access does not exist. ";
 			else if(status == 500)
 				$scope.errorMessage= "Oops!! Its 500. Looks like server is experiencing some problem. Please try after some time. ";
 			else if(status == 405)
 				$scope.errorMessage= "Oops!! Its 405. Not a valid method. Please rectify or contact the system administrator";
+			else if(status == 400)
+				$scope.errorMessage= "Oops!! Its 400, a bad request. Please correct it.";
 			else
 				$scope.errorMessage= "Oops!! Looks like the server is having issues. Please try again later.";
 		}
@@ -401,16 +404,23 @@
 					"Content-Type": this.linkAttributes.mediaType
 					}
 			}).then(function(response) {
-				console.log("in success response");
-				$scope.showBilling = true;
+				console.log("in success response: " + $scope.checkingOut);
 				$scope.billingInfo = response.data;
-				console.log("billing: " + $scope.billingInfo.length);
-
-				element = $scope.billingInfo[0];
-				for(i=0;i<element.links.length;i++) {
-					if(element.links[i].rel == "addBilling") {
-						$scope.addBillingLink = element.links[i];
-						break;
+				if($scope.billingInfo[0].custBillId == null & $scope.checkingOut == true) {
+					$scope.messageFlag = true;
+					$scope.message = "Please update your payment/address info in your profile before proceeding to checkout.";
+					$scope.checkingOut = false;
+				}
+				else {
+					$scope.showBilling = true;
+					
+					console.log("billing: " + $scope.billingInfo.length);
+					element = $scope.billingInfo[0];
+					for(i=0;i<element.links.length;i++) {
+						if(element.links[i].rel == "addBilling") {
+							$scope.addBillingLink = element.links[i];
+							break;
+						}
 					}
 				}
 
@@ -533,6 +543,7 @@
 						$scope.addReviewLink = true;
 				};
 				console.log("showProducts"+$scope.showProducts);
+				console.log("showReview"+$scope.showReview);
 			},function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
@@ -634,56 +645,159 @@
 			
 		};
 		
-		$scope.showReviews = function(links) {
+		$scope.showReviews = function(product) {
 			$scope.navTitle = 'Product Review';
-			$scope.review = true;
-			$scope.showProducts = false;
-			$scope.addReviewLink = links[2];
-			var response = $http.get(links[1].url);
-			response.success(function(data) {
-				$scope.reviews = data;
-				console.log("[product reviews] # of items: " + data.length);
+			//$scope.resetAll();
+			$scope.selectedProductId = product.productId;
+			
+			for(i=0;i<product.links.length; i++) {
+				var element = product.links[i]; 
+				if(element.rel == "showReviews") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			console.log("show Review: " + this.linkAttributes.url);
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				$scope.showReview = true;
+				$scope.showProducts = true;
+				$scope.showSearch = true;
+				$scope.reviews = response.data;
+				console.log("showproducts -" + $scope.showProducts);
+				console.log("review -" + $scope.showReview);
+				console.log("[product reviews] # of items: " + response.data.length);
 				angular.forEach(data, function(element) {
 					console.log("[product reviews] desc: " + element.reviewDesc);
 				});
-
-		    });
-			
-			
-			response.error(function(data, status, headers, config) {
+			},function(response){
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
 				$scope.setErrorMessage(response.status);
-				$scope.error = true;
+				$scope.error = true;				
 			});
 		};
 		
 		// add a review
-		$scope.postReview = function(desc) {
+		$scope.postReview = function(product, reviewDesc) {
+
+			for(i=0;i<product.links.length; i++) {
+				var element = product.links[i]; 
+				if(element.rel == "addReview") {
+					$scope.processLink(element);
+					break;
+				}
+			}
 			var reviewRequest = {
 				customerId: $scope.customerSession.customerId,
-				productId: $scope.selected,
-				reviewDescription: desc,
+				productId: product.productId,
+				reviewDescription: reviewDesc,
 				reviewType: 'product'
 			};
-			console.log('selected ' + $scope.selected);
-			var response = $http.post($scope.addReviewLink.url, reviewRequest);
-			response.success(function(data){
-				$scope.reviews = data;
-				console.log("[product reviews] # of items: " + data.length);
+			console.log('selected ' + product.productId);
+
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: reviewRequest, 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				$scope.reviews = response.data;
+				$scope.showReview = true;
+				$scope.showProducts = true;
+				console.log("[product reviews] # of items: " + response.data.length);
 				angular.forEach(data, function(element) {
 					console.log("[product reviews] desc: " + element.reviewDesc);
 				});
-			});
-			response.error(function(data, status, headers, config) {
+				
+			},function(response){
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
 				$scope.setErrorMessage(response.status);
-				$scope.error = true;
+				$scope.error = true;				
 			});
 		};
-		
 
+		
+		// Update product Quantity
+		$scope.updateProductInfo = function(product) {
+			var productRequest = {
+				vendorId: $scope.customerSession.customerId,
+				productId: product.productId,
+				quantity: product.quantity,
+				price: product.price
+			};
+			console.log('selected for update' + product.productId);
+			for(i=0;i<product.links.length; i++) {
+				var element = product.links[i]; 
+				if(element.rel == "updateProduct") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: productRequest, 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				$scope.productInfo = response.data;
+				$scope.message = $scope.productInfo.message;
+				$scope.messageFlag = true;
+				
+			},function(response){
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
+				$scope.error = true;				
+			});
+		};
+
+		// Delete product 
+		$scope.deleteProductInfo = function(product) {
+			console.log('selected for delete' + product.productId);
+			for(i=0;i<product.links.length; i++) {
+				var element = product.links[i]; 
+				if(element.rel == "deleteProduct") {
+					$scope.processLink(element);
+					break;
+				}
+			}
+			
+			$http({
+				method: this.linkAttributes.method, 
+				url: this.linkAttributes.url, 
+				dataType: this.dataType,
+				data: '', 
+				headers: {
+					"Content-Type": this.linkAttributes.mediaType
+				}
+			}).then(function(response){
+				var productDeleteInfo = response.data;
+				$scope.message = productDeleteInfo.message;
+				$scope.messageFlag = true;
+				
+			},function(response){
+				console.log("data is: " + response.data + "=" + response.status);
+				$scope.errorData = response.data;
+				$scope.setErrorMessage(response.status);
+				$scope.error = true;				
+			});
+		};
 		
 		// view cart
 		$scope.viewCart = function() {
@@ -719,14 +833,16 @@
 		$scope.checkOut = function() {
 			console.log("in checkout");
 			$scope.resetAll();
-			$scope.checkOut = true; // should not be included in the resetAll() function
-			console.log("checkout value: " + $scope.checkOut);
+			$scope.checkingOut = true; // should not be included in the resetAll() function
+			console.log("checkout value: " + $scope.checkingOut);
 			$scope.viewBilling();
+			console.log("checkout value: " + $scope.checkingOut);
+			console.log("showBilling value: " + $scope.showBilling);
 		};
 		
 		// select payment
 		$scope.selectPayment = function(links) {
-			$scope.checkOut = false; // should not be included in the resetAll() function
+			$scope.checkingOut = false; // should not be included in the resetAll() function
 			$scope.resetAll();
 			for(i=0;i<links.length; i++) {
 				var element = links[i]; 
@@ -776,7 +892,11 @@
 				}
 			}).then(function(response) {
 				$scope.order = response.data;
-				$scope.orderSuccess = true;
+				if($scope.order.links == null) {
+					$scope.messageFlag = true;
+					$scope.message = $scope.order.message;
+				} else
+					$scope.orderSuccess = true;
 			}, function(response) {
 				console.log("data is: " + response.data + "=" + response.status);
 				$scope.errorData = response.data;
@@ -961,7 +1081,7 @@
 			$scope.showCart = false;
 			$scope.orderSuccess = false;
 			$scope.showOrders = false;
-			$scope.review = false;
+			$scope.showReview = false;
 			$scope.error = false;
 			$scope.errorData = false;
 			$scope.showBilling = false;

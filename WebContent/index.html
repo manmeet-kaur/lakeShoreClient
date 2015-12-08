@@ -35,7 +35,7 @@
     						<ul class="dropdown-menu">
     							<li><a ng-show="updateCustomerLink != null" href="#" ng-click="updateCustomer()">Update Your Info</a></li>
       							<li><a ng-show="viewAddressLink != null" href="#" ng-click="viewAddress()">Address</a></li>
-      							<li><a ng-show="viewBillingLink != null" href="#" ng-click="checkOut = false;viewBilling()">Billing Details</a></li>
+      							<li><a ng-show="viewBillingLink != null" href="#" ng-click="checkingOut = false;viewBilling()">Billing Details</a></li>
       							<li><a ng-show="viewVendorProducts != null" href="#" ng-click="showAllProducts()">View Products</a></li>
       							<li class="divider"></li>
       							<li><a ng-show="viewOrdersLink != null" href="#" ng-click="viewOrders()">Orders</a></li>
@@ -80,17 +80,17 @@
 			
 			<div class="container" ng-show="showSearch">
 				<p></p>
-			    <form>
+			    <form ng-show=productSearchLink>
 			    	<table>
 						<tr>
 							<td><label for="search">Enter Search String here: </label>
-							<td><input type="text" ng-model="searchName" size="30"></td>
-							<td><button type="button" ng-click="searchProduct(searchName)" placeholder="What do you have in mind?" class="btn btn-primary btn-sm">
+							<td><input type="text" ng-model="searchName" size="30"  placeholder="What do you have in mind?" ></td>
+							<td><button type="button" ng-click="searchProduct(searchName)" class="btn btn-primary btn-sm">
 	      					<span class="glyphicon glyphicon-search"></span> Search </button></td>
 							<!-- <span class="glyphicon glyphicon-refresh"></span> Reset Search </button></td> -->
 						</tr>
 					</table>
-			    </form>				
+			    </form>	
 				<ul class="list-group">
 					<li class="list-group-item" ng-repeat="product in products" ng-show="showProducts">
 						<div>
@@ -99,38 +99,47 @@
 							<p>Quantity: {{product.quantity}}</p>
 							<p>Vendor: {{product.vendorName}}</p>
 							<a href="#" ng-show="addCartLink && product.quantity != 0" class="btn btn-lg btn-default" ng-click="addToCart(product.links, product.productId)">Add to Cart</a>&nbsp; &nbsp;
-							<a href="#" ng-show="deleteProductLink" class="btn btn-lg btn-default" ng-click="deleteProduct()">Delete Product</a>&nbsp; &nbsp;
-							<a href="#" ng-show="updateProductLink" class="btn btn-lg btn-default" ng-click="updateProduct(product.links)">Update Product</a>&nbsp; &nbsp;
-							<a href="#" class="btn btn-lg btn-default" ng-click="doSelect(product.productId); doSelectName(product.productName); showReviews(product.links)">View Reviews</a>
+							<a href="#" ng-show="deleteProductLink" class="btn btn-lg btn-default" ng-click="deleteProductInfo(product)">Delete Product</a>&nbsp; &nbsp;
+							<a href="#" ng-show="updateProductLink" class="btn btn-lg btn-default" ng-click="showUpdateProduct = true">Update Product</a>&nbsp; &nbsp;
+							<a href="#" ng-show="showReviewsLink" class="btn btn-lg btn-default" ng-click="showReview=true; showReviews(product)">View Reviews</a>
+							<form name="productForm" action="" ng-show="updateProductLink && showUpdateProduct">
+								Quantity To Add: <input type=text name=quantity value=0></input>
+								New Price: <input type=text name=price ng-model="product.price" value=product.price></input>
+								<button type="button" ng-click="updateProductInfo(product); showUpdateProduct=false" class="btn btn-primary btn-sm">Update </button>
+								<button type="button" ng-click="showUpdateProduct=false" class="btn btn-primary btn-sm">Cancel </button>
+						    </form>
+							
+							<!-- Division for showing/adding Reviews -->			
+ 							<div class="container" ng-show="showReview == true">
+								<form ng-show="selectedProductId == product.productId && addReviewLink">
+							    	<table style="width:80%">
+										<tr>
+											<td><label for="reviewDesc">Post a review here</label></td>
+											<td><textarea name=reviewDesc class = "form-control" rows = "3" ng-model="reviewDesc"></textarea></td>
+											<td><button type="button" ng-click="postReview(product, reviewDesc); reviewDesc=''" class="btn btn-primary btn-sm">
+					      					<span class="glyphicon glyphicon-comment"></span> Submit </button></td>
+										</tr>
+									</table>
+							    </form>
+							    <ul class="list-group">
+							    	<li class="list-group-item" ng-show="reviews[0].customerName == null && selectedProductId == product.productId">
+							    		<h4>No Reviews to Show</h4>
+							    	</li>
+									<li class="list-group-item" ng-show="reviews[0].customerName != null && selectedProductId == product.productId" ng-repeat="review in reviews | orderBy:'-reviewId'">
+										<div>
+											<h5>{{review.customerName}} commented: </h5>
+											<p>{{review.reviewDesc}}</p>
+										</div>
+									</li>
+								</ul>
+ 							</div>
 						</div>
 					</li>
 				</ul>
 				<a href="#" ng-show="addProductLink" class="btn btn-lg btn-default" ng-click="addProduct()">Add Product</a>
 			</div>
 			
-			<!-- Division for showing/adding Reviews -->
-			
-			<div class="container" ng-show="review">
-				<h4>{{selectedName}}</h4>
-				<form>
-			    	<table style="width:80%">
-						<tr>
-							<td><label for="review">Post a review here</label></td>
-							<td><textarea class = "form-control" rows = "3" ng-model="reviewDesc"></textarea></td>
-							<td><button type="button" ng-click="postReview(reviewDesc)" class="btn btn-primary btn-sm">
-	      					<span class="glyphicon glyphicon-comment"></span> Submit </button></td>
-						</tr>
-					</table>
-			    </form>
-			    <ul class="list-group">
-					<li class="list-group-item" ng-repeat="review in reviews | orderBy:'-reviewId'">
-						<div>
-							<h5>{{review.customerName}} commented: </h5>
-							<p>{{review.reviewDesc}}</p>
-						</div>
-					</li>
-				</ul>
-			</div>	
+
 				<!-- Division for showing cart status message -->
 				
 				<div class="container" ng-show="cartSuccess">
@@ -283,11 +292,11 @@
 							<p><strong>Card Details </strong></p>
 							<p>{{billing.cardNo}}</p>
 							<p>{{billing.cardType}}</p>
-							<a href="#" class="btn btn-lg btn-default" ng-hide="checkOut" ng-click="deleteCustomerBilling(billing.links)">Delete Billing Details</a>
-							<a href="#" class="btn btn-lg btn-default" ng-show="checkOut" ng-click="selectPayment(billing.links)">Select Payment</a>
+							<a href="#" class="btn btn-lg btn-default" ng-hide="checkingOut" ng-click="deleteCustomerBilling(billing.links)">Delete Billing Details</a>
+							<a href="#" class="btn btn-lg btn-default" ng-show="checkingOut" ng-click="selectPayment(billing.links)">Select Payment</a>
 						</li>
 					</ul>
-					<a href="#" class="btn btn-lg btn-default" ng-hide="checkOut" ng-click="resetBillingForm(); addBilling = !addBilling; showBilling = !showBilling">Add new Billing Info</a>
+					<a href="#" class="btn btn-lg btn-default" ng-hide="checkingOut" ng-click="resetBillingForm(); addBilling = !addBilling; showBilling = !showBilling">Add new Billing Info</a>
 				</div>
 
 				<div class=container ng-show="addBilling">
